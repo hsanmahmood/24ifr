@@ -149,17 +149,16 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance }) => {
     const atisOptions = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)).map(l => ({ label: `Info ${l}`, value: l }));
 
     return (
-        <div className="bg-surface-dark border border-border-dark rounded-lg p-6 shadow-lg sticky top-6">
+        <div className="bg-surface-dark border border-border-dark rounded-lg p-6 shadow-lg">
             <div className="flex items-center justify-between mb-8">
                 <h2 className="font-display text-lg font-bold text-white tracking-wide uppercase">ATC Settings</h2>
                 <div className="flex items-center gap-2">
                     <div className={`w-2 h-2 rounded-full ${controllers?.source === 'live' ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`}></div>
-                    <span className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">{availableStations.length} Online • {controllers?.source || '...'}</span>
+                    <span className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider text-right">{availableStations.length} Online • {controllers?.source || '...'}</span>
                 </div>
             </div>
             <form className="space-y-6" onSubmit={handleSubmit}>
                 <div className="space-y-4">
-                    {/* ATC Station */}
                     <Combobox
                         label="ATC Station"
                         options={availableStations.map(s => ({ ...s, subtext: s.frequency }))}
@@ -168,7 +167,6 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance }) => {
                         placeholder="Select Station"
                     />
 
-                    {/* Departure Airport */}
                     <Combobox
                         label="Departure Airport"
                         options={availableAirports.map(a => ({ label: a, value: a }))}
@@ -177,13 +175,12 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance }) => {
                         placeholder="Select Airport"
                     />
 
-                    <div className="grid grid-cols-2 gap-4">
-                        {/* Runway */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                             <label className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
                                 Runway
                                 {autoFilled.runway && (
-                                    <span className="bg-emerald-500/10 text-emerald-500 text-[9px] px-1.5 py-0.5 rounded border border-emerald-500/20 font-bold animate-fadeIn">ATIS</span>
+                                    <span className="bg-emerald-500/10 text-emerald-500 text-[9px] px-1.5 py-0.5 rounded border border-emerald-500/20 font-bold">ATIS</span>
                                 )}
                             </label>
                             <input
@@ -197,12 +194,11 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance }) => {
                                 className={`w-full bg-black/50 border text-white text-sm rounded px-3 py-2.5 outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-zinc-700 transition-all ${autoFilled.runway ? 'border-emerald-500/30 ring-1 ring-emerald-500/20' : 'border-zinc-800'}`}
                             />
                         </div>
-                        {/* ATIS */}
                         <div>
                             <div className="flex items-center gap-2 mb-1.5">
                                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">ATIS</label>
                                 {autoFilled.atis && (
-                                    <span className="bg-emerald-500/10 text-emerald-500 text-[9px] px-1.5 py-0.5 rounded border border-emerald-500/20 font-bold animate-fadeIn">ATIS</span>
+                                    <span className="bg-emerald-500/10 text-emerald-500 text-[9px] px-1.5 py-0.5 rounded border border-emerald-500/20 font-bold">ATIS</span>
                                 )}
                             </div>
                             <Combobox
@@ -217,7 +213,6 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance }) => {
                         </div>
                     </div>
 
-                    {/* Routing */}
                     <div className="space-y-1.5">
                         <Combobox
                             label="Routing Type"
@@ -237,13 +232,12 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance }) => {
                                         routing === 'VECTORS' ? "Enter Instructions (e.g. Fly Heading 270)" :
                                             "Enter Waypoint (e.g. BPK)"
                                 }
-                                className="w-full bg-black/50 border border-zinc-800 text-white text-sm rounded px-3 py-2.5 outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-zinc-700 animate-fadeIn mt-2"
+                                className="w-full bg-black/50 border border-zinc-800 text-white text-sm rounded px-3 py-2.5 outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-zinc-700 mt-2"
                                 required
                             />
                         )}
                     </div>
 
-                    {/* Initial Climb */}
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Initial Climb</label>
                         <div className="relative">

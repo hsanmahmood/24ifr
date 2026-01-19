@@ -43,10 +43,8 @@ const Combobox = ({ options, value, onChange, placeholder, label }) => {
                     <span className={`material-symbols-outlined text-zinc-500 text-lg transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>expand_more</span>
                 </div>
 
-                {/* Dropdown */}
                 {isOpen && (
                     <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-surface-dark border border-zinc-800 rounded-lg shadow-xl overflow-hidden animate-fadeIn">
-                        {/* Search Input */}
                         <div className="p-2 border-b border-zinc-800 sticky top-0 bg-surface-dark">
                             <div className="relative">
                                 <span className="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">search</span>
@@ -62,7 +60,6 @@ const Combobox = ({ options, value, onChange, placeholder, label }) => {
                             </div>
                         </div>
 
-                        {/* Options List */}
                         <div className="max-h-56 overflow-y-auto custom-scrollbar p-1">
                             {filteredOptions.length > 0 ? (
                                 filteredOptions.map((option) => (

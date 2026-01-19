@@ -3,11 +3,9 @@ import json
 import threading
 import time
 from collections import deque
-
 import requests
 import websockets
 from flask import current_app
-
 from ..core.config import Config
 
 MAX_FLIGHT_PLANS = 3
@@ -43,7 +41,6 @@ async def flight_plan_websocket_client():
     while True:
         try:
             async with websockets.connect(uri, origin="") as websocket:
-                print("WebSocket connected successfully.")
                 while True:
                     message = await websocket.recv()
                     data = json.loads(message)
@@ -53,7 +50,6 @@ async def flight_plan_websocket_client():
                             flight_plan["timestamp"] = time.time()
                             flight_plan["source"] = data.get("t")
                             
-                            # Map fields for frontend compatibility
                             flight_plan["departing"] = flight_plan.get("departure") or flight_plan.get("departing")
                             flight_plan["arriving"] = flight_plan.get("arrival") or flight_plan.get("arriving")
                             flight_plan["flightlevel"] = flight_plan.get("altitude") or flight_plan.get("flightlevel")
@@ -76,8 +72,8 @@ async def flight_plan_websocket_client():
 
                                 if not found:
                                     flight_plans_cache.appendleft(flight_plan)
-        except Exception as e:
-            print(f"WebSocket error: {e}. Reconnecting in 5 seconds...")
+        except Exception:
+            pass
         await asyncio.sleep(5)
 
 def run_websocket_in_background():

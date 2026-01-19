@@ -26,7 +26,7 @@ const LeaderboardPage = () => {
 
     if (loading) {
         return (
-            <main className="flex-1 p-8 flex items-center justify-center">
+            <main className="flex-1 p-8 flex items-center justify-center pt-20 lg:pt-8">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
             </main>
         );
@@ -34,7 +34,7 @@ const LeaderboardPage = () => {
 
     if (error) {
         return (
-            <main className="flex-1 p-8 flex flex-col items-center justify-center text-center">
+            <main className="flex-1 p-8 flex flex-col items-center justify-center text-center pt-20 lg:pt-8">
                 <span className="material-symbols-outlined text-4xl text-red-500 mb-2">error</span>
                 <p className="text-zinc-400">{error}</p>
             </main>
@@ -42,13 +42,12 @@ const LeaderboardPage = () => {
     }
 
     return (
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-8">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-8 pt-20 lg:pt-8">
             <header>
                 <h1 className="font-display text-3xl font-bold text-white mb-2 uppercase tracking-wide">Leaderboard</h1>
                 {!user && <p className="text-zinc-500">Login to be on the leaderboard.</p>}
             </header>
 
-            {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-surface-dark border border-border-dark p-6 rounded-lg shadow-sm relative overflow-hidden group">
                     <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -80,24 +79,24 @@ const LeaderboardPage = () => {
                                     </td>
                                 </tr>
                             ) : (
-                                data.leaderboard.map((user, index) => (
-                                    <tr key={user.user_id || index} className="hover:bg-zinc-900/50 transition-colors">
+                                data.leaderboard.map((u, index) => (
+                                    <tr key={u.user_id || index} className="hover:bg-zinc-900/50 transition-colors">
                                         <td className="px-6 py-4 font-medium text-white">
                                             {index + 1 === 1 ? '🥇' : index + 1 === 2 ? '🥈' : index + 1 === 3 ? '🥉' : `#${index + 1}`}
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 <img
-                                                    src={user.avatar}
-                                                    alt={user.username}
+                                                    src={u.avatar}
+                                                    alt={u.username}
                                                     className="w-8 h-8 rounded-full border border-zinc-700"
                                                     onError={(e) => { e.target.src = 'https://cdn.discordapp.com/embed/avatars/0.png' }}
                                                 />
-                                                <span className="font-medium text-white">{user.username}</span>
+                                                <span className="font-medium text-white">{u.username}</span>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-right font-display font-medium text-primary">
-                                            {user.total_generations}
+                                            {u.total_generations}
                                         </td>
                                     </tr>
                                 ))

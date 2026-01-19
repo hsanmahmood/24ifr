@@ -27,7 +27,7 @@ const ConfigPage = () => {
     };
 
     return (
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-8">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-8 pt-20 lg:pt-8">
             <header>
                 <h1 className="font-display text-3xl font-bold text-white mb-2 uppercase tracking-wide">Advanced Config</h1>
                 <p className="text-zinc-500">Customize your clearance generation template.</p>

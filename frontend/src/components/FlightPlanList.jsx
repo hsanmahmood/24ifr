@@ -4,7 +4,7 @@ import Loading from './Loading';
 const FlightPlanList = ({ flightPlans, selectedFlightPlan, onSelectFlightPlan, loading, error }) => {
     if (loading) return <Loading />;
     if (error) return <p className="text-center text-red-500">Failed to load flight plans.</p>;
-    if (flightPlans.length === 0) return <p className="text-center text-zinc-500">No active IFR flight plans.</p>;
+    if (flightPlans.length === 0) return <p className="text-center text-zinc-500">There is no active flightplans</p>;
 
     return (
         <div className="p-4 space-y-3">
