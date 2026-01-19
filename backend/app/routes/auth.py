@@ -5,7 +5,7 @@ from requests_oauthlib import OAuth2Session
 from postgrest import APIError
 
 from ..core.config import Config
-from ..core.database import supabase_admin
+from ..core.database import get_supabase_client
 
 auth_bp = Blueprint('auth_bp', __name__)
 

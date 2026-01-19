@@ -7,7 +7,6 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 import uuid
 import os
 from .core.config import Config
-from .core.database import init_db
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -29,9 +28,6 @@ def create_app(config_class=Config):
     def ensure_session_id():
         if 'session_id' not in session:
             session['session_id'] = str(uuid.uuid4())
-
-    with app.app_context():
-        init_db()
 
     from .routes.auth import auth_bp
     from .routes.api import api_bp

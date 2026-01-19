@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, session, current_app
-from ..core.database import get_supabase_client, supabase_admin
+from ..core.database import get_supabase_client
 from ..services.external_api import external_api_service, flight_plans_cache, flight_plan_lock
 from ..utils.auth_utils import require_auth
 
