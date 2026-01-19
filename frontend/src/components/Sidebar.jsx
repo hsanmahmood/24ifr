@@ -109,10 +109,10 @@ const Sidebar = () => {
                                 </div>
                                 <button
                                     onClick={handleLogout}
-                                    className="w-full flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 py-4 rounded-xl border border-red-500/20 transition-all font-bold uppercase tracking-widest text-sm"
+                                    className="w-full bg-primary hover:bg-primary-dim text-black font-bold uppercase tracking-widest py-4 rounded-xl transition-all text-sm flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(250,204,21,0.2)]"
                                 >
-                                    <span className="material-symbols-outlined">logout</span>
-                                    Logout
+                                    <span className="material-symbols-outlined text-xl">logout</span>
+                                    <span>Logout</span>
                                 </button>
                             </div>
                         ) : (
@@ -173,11 +173,11 @@ const Sidebar = () => {
                             </div>
                             <button
                                 onClick={handleLogout}
-                                className={`flex items-center gap-4 px-4 py-3 rounded-lg transition-all text-red-500/70 hover:text-red-500 hover:bg-red-500/10 group overflow-hidden ${isCollapsed ? 'justify-center' : ''}`}
+                                className={`w-full bg-primary hover:bg-primary-dim text-black font-bold uppercase tracking-widest py-3 px-4 rounded transition-all text-sm flex items-center justify-center gap-2 group whitespace-nowrap overflow-hidden shadow-[0_0_15px_rgba(250,204,21,0.1)] hover:shadow-[0_0_20px_rgba(250,204,21,0.3)] ${isCollapsed ? 'px-0' : ''}`}
                                 title="Logout"
                             >
-                                <span className="material-symbols-outlined text-2xl group-hover:scale-110 transition-transform">logout</span>
-                                <span className={`text-sm font-bold uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0 translate-x-4' : 'opacity-100 w-auto translator-x-0'}`}>Logout</span>
+                                <span className="material-symbols-outlined text-xl group-hover:scale-110 transition-transform">logout</span>
+                                <span className={`transition-all duration-300 ${isCollapsed ? 'hidden w-0' : 'block w-auto'}`}>Logout</span>
                             </button>
                         </>
                     ) : (

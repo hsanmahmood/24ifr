@@ -37,14 +37,11 @@ def discord_callback():
         current_app.logger.error(f"Discord OAuth token fetch/user fetch error: {e}", exc_info=True)
         return redirect(f"{auth_origin}/?error=discord_auth_failed")
 
-    if not supabase_admin:
-        current_app.logger.error("Supabase admin client not available for user upsert.")
-        return redirect(f"{auth_origin}/?error=admin_not_configured")
-
     try:
+        supabase = get_supabase_client()
         avatar_url = f"https://cdn.discordapp.com/avatars/{user_json['id']}/{user_json['avatar']}.png" if user_json.get('avatar') else None
 
-        response = supabase_admin.rpc('update_user_from_discord_login', {
+        response = supabase.rpc('update_user_from_discord_login', {
             'in_discord_id': user_json['id'],
             'in_username': user_json['username'],
             'in_email': user_json.get('email'),
@@ -60,9 +57,7 @@ def discord_callback():
             'id': db_user['id'],
             'discord_id': db_user['out_discord_id'],
             'username': db_user['username'],
-            'avatar': db_user['avatar'],
-            'is_admin': db_user.get('is_admin', False),
-            'roles': db_user.get('roles', [])
+            'avatar': db_user['avatar']
         }
         session.permanent = True
     except APIError as e:
