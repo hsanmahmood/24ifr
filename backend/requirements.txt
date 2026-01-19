@@ -1,0 +1,10 @@
+Flask
+Flask-Cors
+python-dotenv
+supabase
+gotrue
+gunicorn
+requests
+websockets
+requests-oauthlib
+whitenoise
