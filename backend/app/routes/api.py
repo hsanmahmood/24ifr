@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request, session, current_app
 from ..core.database import get_supabase_client, supabase_admin
-from ..services.external_api import external_api_service, flight_plans_cache
+from ..services.external_api import external_api_service, flight_plans_cache, flight_plan_lock
 from ..utils.auth_utils import require_auth
 
 api_bp = Blueprint('api_bp', __name__)
@@ -29,12 +29,21 @@ def get_atis():
 
 @api_bp.route('/api/flight-plans')
 def get_flight_plans():
-    if flight_plans_cache:
-        return jsonify(list(flight_plans_cache))
+    with flight_plan_lock:
+        if flight_plans_cache:
+            return jsonify(list(flight_plans_cache))
+            
     try:
         supabase = get_supabase_client()
-        response = supabase.from_('flight_plans_received').select("*").order('created_at', desc=True).limit(20).execute()
-        return jsonify(response.data or [])
+        response = supabase.from_('flight_plans_received').select("*").order('created_at', desc=True).limit(3).execute()
+        plans = response.data or []
+        for plan in plans:
+            plan["departing"] = plan.get("departure") or plan.get("departing")
+            plan["arriving"] = plan.get("arrival") or plan.get("arriving")
+            plan["flightlevel"] = plan.get("altitude") or plan.get("flightlevel")
+            plan["flightrules"] = plan.get("flight_rules") or plan.get("flightrules")
+            plan["aircraft"] = plan.get("aircraft_type") or plan.get("aircraft")
+        return jsonify(plans)
     except Exception as e:
         current_app.logger.error(f"Failed to fetch flight plans from Supabase: {e}", exc_info=True)
         return jsonify({"error": "Failed to fetch flight plans from database", "details": str(e)}), 500
