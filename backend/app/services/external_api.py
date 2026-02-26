@@ -5,11 +5,11 @@ import time
 from collections import deque
 import requests
 try:
-    import websockets
+    import websockets  # type: ignore[import]
 except Exception:
     websockets = None
 try:
-    from flask import current_app
+    from flask import current_app  # type: ignore[import]
 except Exception:
     class _DummyLogger:
         def error(self, *a, **k):
@@ -47,12 +47,16 @@ external_api_service = ExternalApiService()
 
 async def flight_plan_websocket_client():
     uri = Config.DATA_API_WSS_URL
+    backoff = 1
     while True:
         if websockets is None:
             await asyncio.sleep(5)
             continue
         try:
+            current_app.logger.info(f"connecting to flight-plan websocket {uri}")
             async with websockets.connect(uri, origin="") as websocket:
+                # reset backoff after a successful connection
+                backoff = 1
                 while True:
                     message = await websocket.recv()
                     data = json.loads(message)
@@ -79,14 +83,19 @@ async def flight_plan_websocket_client():
                                 for i, fp in enumerate(flight_plans_cache):
                                     if (fp.get("callsign"), fp.get("departing"), fp.get("arriving")) == composite_key:
                                         flight_plans_cache[i] = flight_plan
+                                        current_app.logger.debug(f"updated cached plan {flight_plan.get('callsign')}")
                                         found = True
                                         break
 
                                 if not found:
+                                    current_app.logger.debug(f"adding plan {flight_plan.get('callsign')} to cache")
                                     flight_plans_cache.appendleft(flight_plan)
-        except Exception:
-            breakpoint()
-        await asyncio.sleep(5)
+        except Exception as e:
+            current_app.logger.error(f"websocket client error: {e}", exc_info=True)
+            if getattr(current_app, "debug", False):
+                breakpoint()
+        await asyncio.sleep(backoff)
+        backoff = min(backoff * 2, 60)
 
 def run_websocket_in_background():
     loop = asyncio.new_event_loop()

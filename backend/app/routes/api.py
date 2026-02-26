@@ -1,6 +1,23 @@
-from flask import Blueprint, jsonify, request, session, current_app
+try:
+    from flask import Blueprint, jsonify, request, session, current_app
+except Exception:
+    # fallback types to keep Pylance happy when dependencies aren't installed
+    Blueprint = type('Blueprint', (), {})
+    def jsonify(x=None, **k):
+        return x
+    class _Req:
+        json = {}
+    request = _Req()
+    session = {}
+    class _DummyApp:
+        def __init__(self):
+            class _Log:
+                def error(self, *a, **k):
+                    pass
+            self.logger = _Log()
+    current_app = _DummyApp()
 from ..core.database import get_supabase_client
-from ..services.external_api import external_api_service, flight_plans_cache, flight_plan_lock
+from ..services.external_api import external_api_service, flight_plans_cache, flight_plan_lock, MAX_FLIGHT_PLANS
 from ..utils.auth_utils import require_auth
 
 api_bp = Blueprint('api_bp', __name__)
@@ -29,14 +46,16 @@ def get_atis():
 
 @api_bp.route('/api/flight-plans')
 def get_flight_plans():
+    # allow clients to force fresh data (ignore cache)
+    fresh = request.args.get('fresh', 'false').lower() in ('1', 'true', 'yes')
     with flight_plan_lock:
-        if flight_plans_cache:
+        if flight_plans_cache and not fresh:
             return jsonify(list(flight_plans_cache))
-            
+
     try:
         supabase = get_supabase_client()
         # grab the most recent flight plans - keep in sync with MAX_FLIGHT_PLANS
-        response = supabase.from_('flight_plans_received').select("*").order('created_at', desc=True).limit(5).execute()
+        response = supabase.from_('flight_plans_received').select("*").order('created_at', desc=True).limit(MAX_FLIGHT_PLANS).execute()
         plans = response.data or []
         for plan in plans:
             plan["departing"] = plan.get("departure") or plan.get("departing")
@@ -44,6 +63,10 @@ def get_flight_plans():
             plan["flightlevel"] = plan.get("altitude") or plan.get("flightlevel")
             plan["flightrules"] = plan.get("flight_rules") or plan.get("flightrules")
             plan["aircraft"] = plan.get("aircraft_type") or plan.get("aircraft")
+        # update cache so subsequent calls are fast
+        with flight_plan_lock:
+            flight_plans_cache.clear()
+            flight_plans_cache.extend(plans)
         return jsonify(plans)
     except Exception as e:
         current_app.logger.error(f"Failed to fetch flight plans from Supabase: {e}", exc_info=True)
