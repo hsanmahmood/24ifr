@@ -4,11 +4,19 @@ import threading
 import time
 from collections import deque
 import requests
-import websockets
-from flask import current_app
+try:
+    import websockets
+except Exception:
+    websockets = None
+try:
+    from flask import current_app
+except Exception:
+    class _DummyLogger:
+        def error(self, *a, **k):
+            return None
+    current_app = type('DummyApp', (), {'logger': _DummyLogger()})()
 from ..core.config import Config
 
-# number of recent flight plans to keep in-memory
 MAX_FLIGHT_PLANS = 5
 flight_plans_cache = deque(maxlen=MAX_FLIGHT_PLANS)
 flight_plan_lock = threading.Lock()
@@ -40,6 +48,9 @@ external_api_service = ExternalApiService()
 async def flight_plan_websocket_client():
     uri = Config.DATA_API_WSS_URL
     while True:
+        if websockets is None:
+            await asyncio.sleep(5)
+            continue
         try:
             async with websockets.connect(uri, origin="") as websocket:
                 while True:
@@ -74,7 +85,7 @@ async def flight_plan_websocket_client():
                                 if not found:
                                     flight_plans_cache.appendleft(flight_plan)
         except Exception:
-            pass
+            breakpoint()
         await asyncio.sleep(5)
 
 def run_websocket_in_background():
