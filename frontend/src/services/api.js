@@ -1,4 +1,5 @@
-const API_BASE_URL = 'https://api.hasmah.xyz';
+// base URL for backend API; change for production
+const API_BASE_URL = 'https://api.hasanmahmood.org';
 
 const handleResponse = async (response) => {
     if (!response.ok) {

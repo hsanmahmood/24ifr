@@ -35,7 +35,8 @@ def get_flight_plans():
             
     try:
         supabase = get_supabase_client()
-        response = supabase.from_('flight_plans_received').select("*").order('created_at', desc=True).limit(3).execute()
+        # grab the most recent flight plans - keep in sync with MAX_FLIGHT_PLANS
+        response = supabase.from_('flight_plans_received').select("*").order('created_at', desc=True).limit(5).execute()
         plans = response.data or []
         for plan in plans:
             plan["departing"] = plan.get("departure") or plan.get("departing")

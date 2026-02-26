@@ -8,7 +8,8 @@ import websockets
 from flask import current_app
 from ..core.config import Config
 
-MAX_FLIGHT_PLANS = 3
+# number of recent flight plans to keep in-memory
+MAX_FLIGHT_PLANS = 5
 flight_plans_cache = deque(maxlen=MAX_FLIGHT_PLANS)
 flight_plan_lock = threading.Lock()
 

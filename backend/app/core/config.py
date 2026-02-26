@@ -5,7 +5,8 @@ load_dotenv()
 
 class Config:
     SECRET_KEY = os.environ.get('SESSION_SECRET', 'dev-secret-key-change-in-production')
-    SESSION_COOKIE_DOMAIN = os.environ.get('SESSION_COOKIE_DOMAIN', '.hasmah.xyz')
+    # use a cookie domain that covers both frontend and api subdomains
+    SESSION_COOKIE_DOMAIN = os.environ.get('SESSION_COOKIE_DOMAIN', '.hasanmahmood.org')
     SESSION_COOKIE_SAMESITE = 'None'
     SESSION_COOKIE_SECURE = True
     PERMANENT_SESSION_LIFETIME = 2592000
@@ -21,7 +22,8 @@ class Config:
     DISCORD_AUTH_BASE_URL = f'{DISCORD_API_BASE_URL}/oauth2/authorize'
     DISCORD_TOKEN_URL = f'{DISCORD_API_BASE_URL}/oauth2/token'
 
-    FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:8000")
+    # front‑end serving address (used for redirects, CORS, etc.)
+    FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://24ifr.hasanmahmood.org")
 
     DATA_API_BASE_URL = 'https://24data.ptfs.app'
     DATA_API_CONTROLLERS_URL = f'{DATA_API_BASE_URL}/controllers'
