@@ -16,18 +16,22 @@ except Exception:
                     pass
             self.logger = _Log()
     current_app = _DummyApp()
-from ..core.database import get_supabase_client
-from ..services.external_api import external_api_service, flight_plans_cache, flight_plan_lock, MAX_FLIGHT_PLANS
+from ..services.external_api import external_api_service
 from ..utils.auth_utils import require_auth
 
 api_bp = Blueprint('api_bp', __name__)
 
 @api_bp.route('/api/health')
 def health_check():
+    # return status from relay as well as basic app health
+    try:
+        relay = external_api_service.get_health()
+    except Exception as e:
+        current_app.logger.warning(f"relay health check failed: {e}")
+        relay = None
     return jsonify({
         "status": "ok",
-        "supabase_status": "connected",
-        "flight_plan_cache_size": len(flight_plans_cache)
+        "relay": relay,
     })
 
 @api_bp.route('/api/controllers')
@@ -44,33 +48,31 @@ def get_atis():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@api_bp.route('/api/acft-data')
+def get_acft_data():
+    event = request.args.get('event', 'false').lower() in ('1','true','yes')
+    try:
+        return jsonify(external_api_service.get_acft_data(event=event))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@api_bp.route('/api/relay-health')
+def relay_health():
+    try:
+        return jsonify(external_api_service.get_health())
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @api_bp.route('/api/flight-plans')
 def get_flight_plans():
-    # allow clients to force fresh data (ignore cache)
-    fresh = request.args.get('fresh', 'false').lower() in ('1', 'true', 'yes')
-    with flight_plan_lock:
-        if flight_plans_cache and not fresh:
-            return jsonify(list(flight_plans_cache))
-
+    # support optional `event` query param to fetch event server when needed
+    event = request.args.get('event', 'false').lower() in ('1','true','yes')
     try:
-        supabase = get_supabase_client()
-        # grab the most recent flight plans - keep in sync with MAX_FLIGHT_PLANS
-        response = supabase.from_('flight_plans_received').select("*").order('created_at', desc=True).limit(MAX_FLIGHT_PLANS).execute()
-        plans = response.data or []
-        for plan in plans:
-            plan["departing"] = plan.get("departure") or plan.get("departing")
-            plan["arriving"] = plan.get("arrival") or plan.get("arriving")
-            plan["flightlevel"] = plan.get("altitude") or plan.get("flightlevel")
-            plan["flightrules"] = plan.get("flight_rules") or plan.get("flightrules")
-            plan["aircraft"] = plan.get("aircraft_type") or plan.get("aircraft")
-        # update cache so subsequent calls are fast
-        with flight_plan_lock:
-            flight_plans_cache.clear()
-            flight_plans_cache.extend(plans)
+        plans = external_api_service.get_flight_plans(event=event)
         return jsonify(plans)
     except Exception as e:
-        current_app.logger.error(f"Failed to fetch flight plans from Supabase: {e}", exc_info=True)
-        return jsonify({"error": "Failed to fetch flight plans from database", "details": str(e)}), 500
+        current_app.logger.error(f"Failed to fetch flight plans from relay: {e}", exc_info=True)
+        return jsonify({"error": "Failed to fetch flight plans from relay", "details": str(e)}), 500
 
 @api_bp.route('/api/leaderboard/details')
 def get_leaderboard_details():

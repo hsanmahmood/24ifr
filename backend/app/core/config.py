@@ -29,3 +29,6 @@ class Config:
     DATA_API_CONTROLLERS_URL = f'{DATA_API_BASE_URL}/controllers'
     DATA_API_ATIS_URL = f'{DATA_API_BASE_URL}/atis'
     DATA_API_WSS_URL = f'wss://{DATA_API_BASE_URL.replace("https://", "")}/wss'
+
+    # relay cache service used by backend for controllers/atis/fpls/etc
+    RELAY_URL = os.environ.get('RELAY_URL', 'https://ws.awdevsoftware.org')
