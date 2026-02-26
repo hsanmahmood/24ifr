@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Disallow: /config
+Sitemap: https://24ifr.hasanmahmood.org/sitemap.xml
