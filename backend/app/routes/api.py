@@ -16,6 +16,7 @@ except Exception:
                     pass
             self.logger = _Log()
     current_app = _DummyApp()
+from ..core.database import get_supabase_client
 from ..services.external_api import external_api_service
 from ..utils.auth_utils import require_auth
 

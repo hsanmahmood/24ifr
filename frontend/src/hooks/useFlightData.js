@@ -17,7 +17,7 @@ export const useFlightData = () => {
                 api.loadControllers(),
                 api.loadAtis(),
             ]);
-            setFlightPlans(plans);
+            setFlightPlans(plans.slice(0, 5));
             setControllers(ctrls);
             setAtis(atisData);
             if (plans.length > 0) {
