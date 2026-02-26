@@ -152,10 +152,7 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance }) => {
         <div className="bg-surface-dark border border-border-dark rounded-lg p-6 shadow-lg">
             <div className="flex items-center justify-between mb-8">
                 <h2 className="font-display text-lg font-bold text-white tracking-wide uppercase">ATC Settings</h2>
-                <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${controllers?.source === 'live' ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`}></div>
-                    <span className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider text-right">{availableStations.length} Online • {controllers?.source || '...'}</span>
-                </div>
+                <p className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider text-right">16 Online</p>
             </div>
             <form className="space-y-6" onSubmit={handleSubmit}>
                 <div className="space-y-4">
