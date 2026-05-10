@@ -2,9 +2,6 @@ Flask
 Flask-Cors
 python-dotenv
 supabase
-gotrue
-gunicorn
+waitress
 requests
-websockets
 requests-oauthlib
-whitenoise

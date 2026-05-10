@@ -10,4 +10,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 EXPOSE 5000
 
-CMD ["gunicorn", "--config", "gunicorn.conf.py", "wsgi:app"]
+CMD ["python", "-m", "waitress", "--port=5000", "app.app:app"]

@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import Combobox from './Combobox';
+import { loadUserSettings } from '../services/api';
 
 const AtcSettings = ({ atis, controllers, onGenerateClearance }) => {
-    const [station, setStation] = useState('');
-    const [departureAirport, setDepartureAirport] = useState('');
-    const [runway, setRunway] = useState('');
-    const [atisLetter, setAtisLetter] = useState('A');
+    const savedSettings = loadUserSettings() || {};
 
-    const [routing, setRouting] = useState(() => localStorage.getItem('atc_routing_type') || 'As Filed');
-    const [routingDetails, setRoutingDetails] = useState('');
-    const [initialClimb, setInitialClimb] = useState(() => localStorage.getItem('atc_initial_climb') || '5000');
+    const [station, setStation] = useState(() => savedSettings.defaultAtcStation || '');
+    const [departureAirport, setDepartureAirport] = useState('');
+    const [runway, setRunway] = useState(() => savedSettings.defaultRunway || '');
+    const [atisLetter, setAtisLetter] = useState(() => savedSettings.defaultAtisLetter || 'A');
+
+    const [routing, setRouting] = useState(() => savedSettings.defaultRouting || 'As Filed');
+    const [routingDetails, setRoutingDetails] = useState(() => savedSettings.defaultRoutingDetails || '');
+    const [initialClimb, setInitialClimb] = useState(() => savedSettings.defaultInitialClimb || '5000');
 
     const [autoFilled, setAutoFilled] = useState({ runway: false, atis: false });
 
@@ -86,7 +89,9 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance }) => {
 
     const handleRoutingChange = (newVal) => {
         setRouting(newVal);
-        localStorage.setItem('atc_routing_type', newVal);
+        if (newVal === 'As Filed') {
+            setRoutingDetails('');
+        }
     };
 
     const updateAtisAndRunwayForAirport = (airport) => {
@@ -125,18 +130,7 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        let finalRouting;
-        if (routing === 'As Filed') {
-            finalRouting = 'As Filed';
-        } else if (routing === 'SID') {
-            finalRouting = `the ${routingDetails} departure`;
-        } else if (routing === 'DIRECT') {
-            finalRouting = `direct ${routingDetails}`;
-        } else {
-            finalRouting = routingDetails || 'radar vectors';
-        }
-
-        onGenerateClearance({ station, runway, routing: finalRouting, initialClimb, atisLetter });
+        onGenerateClearance({ station, runway, routing, routingDetails, initialClimb, atisLetter });
     };
 
     const routingOptions = [

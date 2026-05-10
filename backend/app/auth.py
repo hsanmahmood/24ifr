@@ -1,15 +1,19 @@
-import time
-from datetime import datetime, timezone
-from flask import Blueprint, session, redirect, request, jsonify, current_app
+from functools import wraps
+from flask import session, redirect, request, jsonify, current_app
 from requests_oauthlib import OAuth2Session
 from postgrest import APIError
 
-from ..core.config import Config
-from ..core.database import get_supabase_client
+from .config import Config
+from .database import supabase
 
-auth_bp = Blueprint('auth_bp', __name__)
+def require_auth(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user' not in session:
+            return jsonify({"error": "Authentication required"}), 401
+        return f(*args, **kwargs)
+    return decorated_function
 
-@auth_bp.route('/auth/discord')
 def discord_login():
     if not all([Config.DISCORD_CLIENT_ID, Config.DISCORD_CLIENT_SECRET]):
         return jsonify({"error": "Discord OAuth not configured"}), 500
@@ -21,7 +25,6 @@ def discord_login():
     session['auth_origin'] = request.args.get('origin', Config.FRONTEND_URL)
     return redirect(authorization_url)
 
-@auth_bp.route('/auth/discord/callback')
 def discord_callback():
     auth_origin = session.pop('auth_origin', Config.FRONTEND_URL)
 
@@ -38,7 +41,6 @@ def discord_callback():
         return redirect(f"{auth_origin}/?error=discord_auth_failed")
 
     try:
-        supabase = get_supabase_client()
         avatar_url = f"https://cdn.discordapp.com/avatars/{user_json['id']}/{user_json['avatar']}.png" if user_json.get('avatar') else None
 
         response = supabase.rpc('update_user_from_discord_login', {
@@ -69,12 +71,16 @@ def discord_callback():
 
     return redirect(f"{auth_origin}/?auth=success")
 
-@auth_bp.route('/api/auth/user')
 def get_current_user():
     return jsonify({"authenticated": 'user' in session, "user": session.get('user')})
 
-@auth_bp.route('/api/auth/logout', methods=['POST'])
 def logout():
     session.pop('user', None)
     session.clear()
     return jsonify({"success": True, "message": "Logged out"})
+
+def register(app):
+    app.add_url_rule('/auth/discord', 'discord_login', discord_login)
+    app.add_url_rule('/auth/discord/callback', 'discord_callback', discord_callback)
+    app.add_url_rule('/api/auth/user', 'get_current_user', get_current_user)
+    app.add_url_rule('/api/auth/logout', 'logout', logout, methods=['POST'])

@@ -12,7 +12,6 @@ class Config:
 
     SUPABASE_URL = os.environ.get("SUPABASE_URL")
     SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY")
-    SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
 
     DISCORD_CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID")
     DISCORD_CLIENT_SECRET = os.environ.get("DISCORD_CLIENT_SECRET")
@@ -22,10 +21,5 @@ class Config:
     DISCORD_TOKEN_URL = f'{DISCORD_API_BASE_URL}/oauth2/token'
 
     FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://24ifr.hasanmahmood.org")
-
-    DATA_API_BASE_URL = 'https://24data.ptfs.app'
-    DATA_API_CONTROLLERS_URL = f'{DATA_API_BASE_URL}/controllers'
-    DATA_API_ATIS_URL = f'{DATA_API_BASE_URL}/atis'
-    DATA_API_WSS_URL = f'wss://{DATA_API_BASE_URL.replace("https://", "")}/wss'
 
     RELAY_URL = os.environ.get('RELAY_URL', 'https://ws.awdevsoftware.org')

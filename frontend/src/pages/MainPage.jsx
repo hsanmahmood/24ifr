@@ -4,6 +4,7 @@ import FlightPlanList from '../components/FlightPlanList';
 import AtcSettings from '../components/AtcSettings';
 import GeneratedClearance from '../components/GeneratedClearance';
 import * as api from '../services/api';
+import { buildClearanceText, normalizeSettings } from '../services/clearance';
 import { useAuth } from '../context/AuthContext';
 
 const MainPage = () => {
@@ -29,22 +30,12 @@ const MainPage = () => {
             return;
         }
 
-        const userSettings = api.loadUserSettings();
-        const template = userSettings?.clearanceTemplate || "{CALLSIGN}, {ATC_STATION}, good day. Startup approved. Information {ATIS} is correct. Cleared to {DESTINATION} via {ROUTE}, runway {RUNWAY}. Initial climb {INITIAL_ALT}FT, expect further climb to Flight Level {FLIGHT_LEVEL}. Squawk {SQUAWK}.";
-
-        const fl = selectedFlightPlan.flightlevel;
-        const formattedFL = fl ? (fl > 999 ? Math.floor(fl / 100) : fl).toString().padStart(3, '0') : 'XXX';
-
-        const clearance = template
-            .replace(/{CALLSIGN}/g, selectedFlightPlan.callsign || '')
-            .replace(/{ATC_STATION}/g, settings.station || '')
-            .replace(/{ATIS}/g, settings.atisLetter || 'A')
-            .replace(/{DESTINATION}/g, selectedFlightPlan.arriving || '')
-            .replace(/{ROUTE}/g, settings.routing === 'As Filed' ? (selectedFlightPlan.route || 'as filed') : settings.routing)
-            .replace(/{RUNWAY}/g, settings.runway || '')
-            .replace(/{INITIAL_ALT}/g, settings.initialClimb || '')
-            .replace(/{FLIGHT_LEVEL}/g, formattedFL)
-            .replace(/{SQUAWK}/g, generateSquawk());
+        const advancedSettings = normalizeSettings(api.loadUserSettings() || {});
+        const clearance = buildClearanceText({
+            flightPlan: selectedFlightPlan,
+            formSettings: settings,
+            advancedSettings,
+        });
 
         setGeneratedClearance(clearance);
 
@@ -62,6 +53,9 @@ const MainPage = () => {
 
         try {
             await api.trackClearanceGeneration(clearanceData);
+            if (advancedSettings.autoCopyClearance && navigator?.clipboard?.writeText) {
+                await navigator.clipboard.writeText(clearance);
+            }
         } catch (error) {
             console.error("Failed to track clearance:", error);
         }

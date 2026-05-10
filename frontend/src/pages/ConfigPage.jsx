@@ -1,29 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { loadUserSettings, saveUserSettings } from '../services/api';
+import { loadUserSettings, saveUserSettings, updateUserSettings } from '../services/api';
+import { DEFAULT_CLEARANCE_SETTINGS, DEFAULT_CLEARANCE_TEMPLATE, CLEARANCE_PLACEHOLDERS, normalizeSettings } from '../services/clearance';
 
 const ConfigPage = () => {
-    const [template, setTemplate] = useState('');
+    const [settings, setSettings] = useState(DEFAULT_CLEARANCE_SETTINGS);
     const [saved, setSaved] = useState(false);
 
     useEffect(() => {
-        const settings = loadUserSettings();
-        if (settings && settings.clearanceTemplate) {
-            setTemplate(settings.clearanceTemplate);
-        } else {
-            setTemplate("{CALLSIGN}, {ATC_STATION}, good day. Startup approved. Information {ATIS} is correct. Cleared to {DESTINATION} via {ROUTE}, runway {RUNWAY}. Initial climb {INITIAL_ALT}FT, expect further climb to Flight Level {FLIGHT_LEVEL}. Squawk {SQUAWK}.");
-        }
+        const storedSettings = normalizeSettings(loadUserSettings() || {});
+        setSettings(storedSettings);
     }, []);
 
     const handleSave = () => {
-        saveUserSettings({ clearanceTemplate: template });
+        saveUserSettings(settings);
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
     };
 
     const handleReset = () => {
-        const defaultTemplate = "{CALLSIGN}, {ATC_STATION}, good day. Startup approved. Information {ATIS} is correct. Cleared to {DESTINATION} via {ROUTE}, runway {RUNWAY}. Initial climb {INITIAL_ALT}FT, expect further climb to Flight Level {FLIGHT_LEVEL}. Squawk {SQUAWK}.";
-        setTemplate(defaultTemplate);
-        saveUserSettings({ clearanceTemplate: defaultTemplate });
+        setSettings(DEFAULT_CLEARANCE_SETTINGS);
+        saveUserSettings(DEFAULT_CLEARANCE_SETTINGS);
+    };
+
+    const updateSetting = (key, value) => {
+        setSettings(prev => ({ ...prev, [key]: value }));
+    };
+
+    const handleInlineSave = (key, value) => {
+        updateSetting(key, value);
+        updateUserSettings({ [key]: value });
     };
 
     return (
@@ -41,10 +46,10 @@ const ConfigPage = () => {
                     </p>
 
                     <div className="flex flex-wrap gap-2 mb-4">
-                        {['{CALLSIGN}', '{ATC_STATION}', '{ATIS}', '{DESTINATION}', '{ROUTE}', '{RUNWAY}', '{INITIAL_ALT}', '{FLIGHT_LEVEL}', '{SQUAWK}'].map(variable => (
+                        {CLEARANCE_PLACEHOLDERS.map(variable => (
                             <button
                                 key={variable}
-                                onClick={() => setTemplate(prev => prev + ' ' + variable)}
+                                onClick={() => updateSetting('clearanceTemplate', `${settings.clearanceTemplate || DEFAULT_CLEARANCE_TEMPLATE} ${variable}`.trim())}
                                 className="bg-zinc-900 hover:bg-zinc-800 text-primary text-xs font-mono px-2 py-1 rounded border border-zinc-800 transition-colors"
                             >
                                 {variable}
@@ -53,11 +58,109 @@ const ConfigPage = () => {
                     </div>
 
                     <textarea
-                        value={template}
-                        onChange={(e) => setTemplate(e.target.value)}
+                        value={settings.clearanceTemplate}
+                        onChange={(e) => updateSetting('clearanceTemplate', e.target.value)}
                         className="w-full h-32 bg-black/50 border border-zinc-800 text-white font-mono text-sm rounded-lg p-4 outline-none focus:border-primary focus:ring-1 focus:ring-primary mb-4 resize-none"
                         placeholder="Enter your clearance template..."
                     ></textarea>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <label className="space-y-1.5">
+                            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Default ATC Station</span>
+                            <input
+                                type="text"
+                                value={settings.defaultAtcStation}
+                                onChange={(e) => handleInlineSave('defaultAtcStation', e.target.value)}
+                                className="w-full bg-black/50 border border-zinc-800 text-white text-sm rounded px-3 py-2.5 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                                placeholder="IRCC_CTR"
+                            />
+                        </label>
+                        <label className="space-y-1.5">
+                            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Default ATIS Letter</span>
+                            <select
+                                value={settings.defaultAtisLetter}
+                                onChange={(e) => handleInlineSave('defaultAtisLetter', e.target.value)}
+                                className="w-full bg-black/50 border border-zinc-800 text-white text-sm rounded px-3 py-2.5 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                            >
+                                {Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)).map(letter => (
+                                    <option key={letter} value={letter}>{letter}</option>
+                                ))}
+                            </select>
+                        </label>
+                        <label className="space-y-1.5">
+                            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Default Initial Climb</span>
+                            <input
+                                type="text"
+                                value={settings.defaultInitialClimb}
+                                onChange={(e) => handleInlineSave('defaultInitialClimb', e.target.value)}
+                                className="w-full bg-black/50 border border-zinc-800 text-white text-sm rounded px-3 py-2.5 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                                placeholder="5000"
+                            />
+                        </label>
+                        <label className="space-y-1.5">
+                            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Default Runway</span>
+                            <input
+                                type="text"
+                                value={settings.defaultRunway}
+                                onChange={(e) => handleInlineSave('defaultRunway', e.target.value)}
+                                className="w-full bg-black/50 border border-zinc-800 text-white text-sm rounded px-3 py-2.5 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                                placeholder="27L"
+                            />
+                        </label>
+                        <label className="space-y-1.5">
+                            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Default Routing</span>
+                            <select
+                                value={settings.defaultRouting}
+                                onChange={(e) => handleInlineSave('defaultRouting', e.target.value)}
+                                className="w-full bg-black/50 border border-zinc-800 text-white text-sm rounded px-3 py-2.5 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                            >
+                                <option value="As Filed">Use original filed route</option>
+                                <option value="SID">SID (Standard Instrument Departure)</option>
+                                <option value="VECTORS">Radar Vectors (Controller guidance)</option>
+                                <option value="DIRECT">Direct (Navigation to specific waypoint)</option>
+                            </select>
+                        </label>
+                        <label className="space-y-1.5">
+                            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Default Route Details</span>
+                            <input
+                                type="text"
+                                value={settings.defaultRoutingDetails}
+                                onChange={(e) => handleInlineSave('defaultRoutingDetails', e.target.value)}
+                                className="w-full bg-black/50 border border-zinc-800 text-white text-sm rounded px-3 py-2.5 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                                placeholder="MID5J / Fly heading 270 / BPK"
+                            />
+                        </label>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <label className="flex items-center gap-3 bg-black/30 border border-zinc-800 rounded px-4 py-3">
+                            <input
+                                type="checkbox"
+                                checked={settings.uppercaseCallsign}
+                                onChange={(e) => handleInlineSave('uppercaseCallsign', e.target.checked)}
+                                className="h-4 w-4 accent-primary"
+                            />
+                            <span className="text-sm text-zinc-300">Uppercase callsign</span>
+                        </label>
+                        <label className="flex items-center gap-3 bg-black/30 border border-zinc-800 rounded px-4 py-3">
+                            <input
+                                type="checkbox"
+                                checked={settings.autoCopyClearance}
+                                onChange={(e) => handleInlineSave('autoCopyClearance', e.target.checked)}
+                                className="h-4 w-4 accent-primary"
+                            />
+                            <span className="text-sm text-zinc-300">Auto-copy generated clearance</span>
+                        </label>
+                        <label className="flex items-center gap-3 bg-black/30 border border-zinc-800 rounded px-4 py-3">
+                            <input
+                                type="checkbox"
+                                checked={settings.useFiledRouteFallback}
+                                onChange={(e) => handleInlineSave('useFiledRouteFallback', e.target.checked)}
+                                className="h-4 w-4 accent-primary"
+                            />
+                            <span className="text-sm text-zinc-300">Use filed route fallback</span>
+                        </label>
+                    </div>
 
                     <div className="flex items-center gap-4">
                         <button

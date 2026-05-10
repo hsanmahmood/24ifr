@@ -1,4 +1,5 @@
 const API_BASE_URL = 'https://api.hasanmahmood.org';
+const USER_SETTINGS_KEY = 'atc24_user_settings';
 
 const handleResponse = async (response) => {
     if (!response.ok) {
@@ -65,10 +66,18 @@ export const logout = async () => {
 };
 
 export const loadUserSettings = () => {
-    const saved = localStorage.getItem('atc24_user_settings');
+    const saved = localStorage.getItem(USER_SETTINGS_KEY);
     return saved ? JSON.parse(saved) : null;
 };
 
 export const saveUserSettings = (settings) => {
-    localStorage.setItem('atc24_user_settings', JSON.stringify(settings));
+    localStorage.setItem(USER_SETTINGS_KEY, JSON.stringify(settings));
+    return settings;
+};
+
+export const updateUserSettings = (partialSettings) => {
+    const currentSettings = loadUserSettings() || {};
+    const nextSettings = { ...currentSettings, ...partialSettings };
+    saveUserSettings(nextSettings);
+    return nextSettings;
 };
