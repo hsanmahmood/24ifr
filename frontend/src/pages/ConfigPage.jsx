@@ -55,6 +55,24 @@ const ConfigPage = () => {
         return settings.clearanceTemplate.replace(/\[([^\]]+)\]/g, '{$1}');
     };
 
+    const renderTemplatePreview = () => {
+        // Split template into parts and variables for visual highlighting
+        const parts = settings.clearanceTemplate.split(/(\[[^\]]+\])/);
+        
+        return parts.map((part, index) => {
+            if (part.match(/^\[[^\]]+\]$/)) {
+                // This is a variable
+                return (
+                    <span key={index} className="bg-primary/20 text-primary font-semibold px-1.5 py-0.5 rounded border border-primary/40">
+                        {part}
+                    </span>
+                );
+            }
+            // Regular text
+            return <span key={index}>{part}</span>;
+        });
+    };
+
     const copyExportToClipboard = () => {
         navigator.clipboard.writeText(exportTemplateWithBraces());
         setShowExport(false);
@@ -95,6 +113,13 @@ const ConfigPage = () => {
                     className="w-full h-40 bg-black/50 border border-zinc-800 text-white font-mono text-sm rounded-lg p-4 outline-none focus:border-primary focus:ring-1 focus:ring-primary mb-4 resize-none"
                     placeholder="Enter your clearance template..."
                 ></textarea>
+
+                <div className="bg-black/30 border border-zinc-800 rounded-lg p-4 mb-4">
+                    <p className="text-xs text-zinc-500 mb-2 uppercase tracking-wider font-semibold">Preview (Variables Highlighted):</p>
+                    <p className="font-mono text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap break-words">
+                        {renderTemplatePreview()}
+                    </p>
+                </div>
 
                 <div className="flex items-center gap-3">
                     <button
