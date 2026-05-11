@@ -71,20 +71,41 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance }) => {
         }
     }, [atis]);
 
+    const getStationRank = (callsign) => {
+        const position = callsign.split('_')[1]?.toUpperCase() || '';
+        const rankMap = { 'GND': 0, 'TWR': 1, 'APP': 2, 'DEP': 2, 'CTR': 3 };
+        return rankMap[position] ?? 99;
+    };
+
+    const handleAirportChange = (airport) => {
+        setDepartureAirport(airport);
+        setStation('');
+        setAutoFilled({ runway: false, atis: false });
+        
+        if (!airport) return;
+
+        // Get all stations for this airport
+        const airportStations = availableStations.filter(s => s.airport === airport);
+        
+        if (airportStations.length > 0) {
+            // Sort by rank and auto-select the lowest rank (most common for startup)
+            const sortedByRank = airportStations.sort((a, b) => 
+                getStationRank(a.value) - getStationRank(b.value)
+            );
+            const lowestRankStation = sortedByRank[0].value;
+            setStation(lowestRankStation);
+            updateAtisAndRunwayForAirport(airport);
+        }
+    };
+
     const handleStationChange = (newStation) => {
         setStation(newStation);
-
         const selectedController = availableStations.find(s => s.value === newStation);
         if (selectedController) {
             const airport = selectedController.airport;
             setDepartureAirport(airport);
             updateAtisAndRunwayForAirport(airport);
         }
-    };
-
-    const handleAirportChange = (airport) => {
-        setDepartureAirport(airport);
-        updateAtisAndRunwayForAirport(airport);
     };
 
     const handleRoutingChange = (newVal) => {
@@ -146,25 +167,29 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance }) => {
         <div className="bg-surface-dark border border-border-dark rounded-lg p-6 shadow-lg">
             <div className="flex items-center justify-between mb-8">
                 <h2 className="font-display text-lg font-bold text-white tracking-wide uppercase">ATC Settings</h2>
-                <p className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider text-right">16 Online</p>
             </div>
             <form className="space-y-6" onSubmit={handleSubmit}>
                 <div className="space-y-4">
-                    <Combobox
-                        label="ATC Station"
-                        options={availableStations.map(s => ({ ...s, subtext: s.frequency }))}
-                        value={station}
-                        onChange={handleStationChange}
-                        placeholder="Select Station"
-                    />
-
                     <Combobox
                         label="Departure Airport"
                         options={availableAirports.map(a => ({ label: a, value: a }))}
                         value={departureAirport}
                         onChange={handleAirportChange}
-                        placeholder="Select Airport"
+                        placeholder="Select Airport First"
                     />
+
+                    {departureAirport && (
+                        <Combobox
+                            label="ATC Station"
+                            options={availableStations
+                                .filter(s => s.airport === departureAirport)
+                                .sort((a, b) => getStationRank(a.value) - getStationRank(b.value))
+                                .map(s => ({ ...s, subtext: s.frequency }))}
+                            value={station}
+                            onChange={handleStationChange}
+                            placeholder="Select Station"
+                        />
+                    )}
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
