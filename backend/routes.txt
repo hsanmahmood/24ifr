@@ -1,0 +1,16 @@
+static                                             HEAD,GET,OPTIONS     /static/<path:filename>
+auth.login                                         HEAD,GET,OPTIONS     /auth/discord
+auth.callback                                      HEAD,GET,OPTIONS     /auth/discord/callback
+auth.get_user                                      HEAD,GET,OPTIONS     /api/auth/user
+auth.logout                                        POST,OPTIONS         /api/auth/logout
+api.health                                         HEAD,GET,OPTIONS     /api/health
+api.controllers                                    HEAD,GET,OPTIONS     /api/controllers
+api.atis                                           HEAD,GET,OPTIONS     /api/atis
+api.flight_plans                                   HEAD,GET,OPTIONS     /api/flight-plans
+api.leaderboard                                    HEAD,GET,OPTIONS     /api/leaderboard/details
+api.user_clearances                                HEAD,GET,OPTIONS     /api/user/clearances
+api.generate                                       POST,OPTIONS         /api/clearance/generate
+admin.get_documents                                HEAD,GET,OPTIONS     /api/admin/documents
+admin.update_document                              PUT,OPTIONS          /api/admin/documents/<doc_key>
+admin.daily_clearances                             HEAD,GET,OPTIONS     /api/admin/clearances/daily
+list_routes                                        HEAD,GET,OPTIONS     /debug/routes
