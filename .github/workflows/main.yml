@@ -42,17 +42,31 @@ jobs:
           push: true
           tags: has21/24ifr:${{ steps.vars.outputs.tag }}
 
+      - name: Install cloudflared
+        run: |
+          curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cloudflared.deb
+          sudo dpkg -i cloudflared.deb
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          cat <<EOF > ~/.ssh/config
+          Host vps
+            HostName ${{ secrets.VPS_HOST }}
+            User ${{ secrets.VPS_USER }}
+            IdentityFile ~/.ssh/id_rsa
+            ProxyCommand /usr/bin/cloudflared access ssh --hostname %h
+            StrictHostKeyChecking no
+          EOF
+
       - name: Deploy to VPS
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          script: |
-            cd /root/24ifr
-            docker compose pull ${{ steps.vars.outputs.service }}
-            docker compose up -d ${{ steps.vars.outputs.service }}
-            docker image prune -f
+        env:
+          CLOUDFLARE_ACCESS_CLIENT_ID: ${{ secrets.CF_SERVICE_TOKEN_ID }}
+          CLOUDFLARE_ACCESS_CLIENT_SECRET: ${{ secrets.CF_SERVICE_TOKEN_SECRET }}
+        run: |
+          ssh vps "cd /root/24ifr && docker compose pull ${{ steps.vars.outputs.service }} && docker compose up -d ${{ steps.vars.outputs.service }} && docker image prune -f"
 
   lint:
     runs-on: ubuntu-latest
