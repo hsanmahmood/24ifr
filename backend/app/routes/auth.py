@@ -1,9 +1,13 @@
+import os
 from functools import wraps
 from flask import Blueprint, session, redirect, request, current_app
 from requests_oauthlib import OAuth2Session
 from ..core.config import Config
 from ..database import supabase
 from ..utils.responses import success_response, error_response
+
+# Required for OAuth2 behind proxies
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
 auth_bp = Blueprint('auth', __name__)
 
