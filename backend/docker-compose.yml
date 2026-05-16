@@ -7,13 +7,12 @@ services:
       - "5000:5000"
     env_file:
       - .env.prod
-    # Or use environment: section if you prefer passing them directly
 
   backend-test:
     image: has21/24ifr:testing
     container_name: 24ifr-backend-test
     restart: always
     ports:
-      - "5001:5000" # Map internal 5000 to external 5001
+      - "5001:5000"
     env_file:
       - .env.test

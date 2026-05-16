@@ -17,12 +17,12 @@ def require_auth(role=None):
         def decorated_function(*args, **kwargs):
             if 'user' not in session:
                 return error_response("Authentication required", status_code=401)
-            
+
             if role == 'admin':
                 discord_id = session['user'].get('discord_id')
                 if discord_id not in Config.ADMIN_DISCORD_IDS:
                     return error_response("Admin privileges required", status_code=403)
-            
+
             return f(*args, **kwargs)
         return decorated_function
     return decorator
