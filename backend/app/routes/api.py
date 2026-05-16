@@ -27,7 +27,7 @@ def flight_plans():
 @api_bp.route('/api/leaderboard/details')
 def leaderboard():
     resp = supabase.rpc('get_leaderboard_details', {'p_limit': 10}).execute()
-    return success_response(data=resp.data)
+    return success_response(data=resp.data or [])
 
 @api_bp.route('/api/user/clearances')
 @require_auth()

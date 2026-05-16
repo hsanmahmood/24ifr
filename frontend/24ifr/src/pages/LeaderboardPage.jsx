@@ -9,7 +9,7 @@ const LeaderboardPage = () => {
         const fetchStats = async () => {
             try {
                 const data = await loadLeaderboard();
-                setStats(data || []);
+                setStats(Array.isArray(data) ? data : []);
             } catch (err) {
                 console.error(err);
             } finally {
