@@ -87,7 +87,7 @@ const ConfigPage = () => {
                     <button onClick={() => setShowExport(!showExport)} className="bg-zinc-800 hover:bg-zinc-700 text-white font-bold uppercase tracking-widest py-2 px-6 rounded transition-all text-sm flex items-center gap-2"><span className="material-symbols-outlined text-lg">download</span> Export</button>
                     {isDirty && <span className="text-amber-400 text-xs font-bold uppercase tracking-wider">Unsaved Changes</span>}
                 </div>
-                {showPreview && <div className="mt-4 p-4 bg-black/30 border border-zinc-800 rounded font-mono text-sm text-zinc-300 leading-relaxed break-words">{localSettings.clearanceTemplate}</div>}
+                {showPreview && <div className="mt-4 p-4 bg-black/30 border border-zinc-800 rounded font-mono text-sm text-zinc-300 leading-relaxed wrap-break-word">{localSettings.clearanceTemplate}</div>}
             </div>
             <div className="bg-surface-dark border border-border-dark rounded-lg p-6 shadow-sm">
                 <h2 className="font-display text-lg font-bold text-white uppercase tracking-wide mb-6">Default Settings</h2>
