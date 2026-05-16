@@ -48,6 +48,15 @@ export const generateClearance = async (payload) => {
     return handleResponse(response);
 };
 
+export const trackClearanceGeneration = async (payload) => {
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/clearance-generated`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+};
+
 export const checkAuthStatus = async () => {
     const response = await fetchWithAuth(`${API_BASE_URL}/api/auth/user`);
     return handleResponse(response);

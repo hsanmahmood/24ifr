@@ -49,7 +49,7 @@ const Combobox = ({ options, value, onChange, placeholder, label }) => {
                 </div>
 
                 {isOpen && (
-                    <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-surface-dark border border-zinc-800 rounded-lg shadow-xl overflow-hidden animate-fadeIn">
+                    <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-surface-dark border border-zinc-800 rounded-lg shadow-xl overflow-hidden">
                         <div className="p-2 border-b border-zinc-800 sticky top-0 bg-surface-dark">
                             <div className="relative">
                                 <span className="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">search</span>

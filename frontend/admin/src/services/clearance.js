@@ -1,4 +1,4 @@
-export const DEFAULT_CLEARANCE_TEMPLATE = '[CALLSIGN], [ATC_STATION], good day. Startup approved. Information [ATIS] is correct. Cleared to [DESTINATION] via [ROUTE], runway [RUNWAY]. Initial climb [INITIAL_ALT]FT, expect further climb to Flight Level [FLIGHT_LEVEL]. Squawk [SQUAWK].';
+export const DEFAULT_CLEARANCE_TEMPLATE = '{CALLSIGN}, {ATC_STATION}, good day. Startup approved. Information {ATIS} correct. Cleared {DESTINATION} via {ROUTE}, runway {RUNWAY}. Initial climb FT{INITIAL_ALT}. Squawk {SQUAWK}.';
 
 export const CLEARANCE_PLACEHOLDERS = [
     '[CALLSIGN]',
@@ -86,7 +86,10 @@ export const resolveRoutingPhrase = ({ flightPlan, routing, routingDetails, sett
 
 export const applyTemplate = (template, replacements) => {
     return Object.entries(replacements).reduce((output, [token, value]) => {
-        return output.replace(new RegExp(`\\[${token}\\]`, 'g'), value ?? '');
+        const replacement = value ?? '';
+        return output
+            .replace(new RegExp(`\\[${token}\\]`, 'g'), replacement)
+            .replace(new RegExp(`\\{${token}\\}`, 'g'), replacement);
     }, template);
 };
 

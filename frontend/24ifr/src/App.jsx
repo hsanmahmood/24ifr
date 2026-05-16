@@ -4,6 +4,8 @@ import Layout from './components/Layout';
 import LegalPopup, { LEGAL_POPUP_STORAGE_KEY } from './components/LegalPopup';
 import ChangelogPopup, { CHANGELOG_POPUP_STORAGE_KEY } from './components/ChangelogPopup';
 import MainPage from './pages/MainPage';
+import AboutPopup from './components/AboutPopup';
+import SupportPopup from './components/SupportPopup';
 import { useAuth } from './context/AuthContext';
 import { loginWithDiscord } from './services/api';
 
@@ -15,15 +17,18 @@ function App() {
   const { user, loading } = useAuth();
   const [isLegalPopupOpen, setIsLegalPopupOpen] = useState(false);
   const [isChangelogPopupOpen, setIsChangelogPopupOpen] = useState(false);
+  const [isAboutPopupOpen, setIsAboutPopupOpen] = useState(false);
+  const [isSupportPopupOpen, setIsSupportPopupOpen] = useState(false);
   const [redirectingToLogin, setRedirectingToLogin] = useState(false);
 
-  useEffect(() => {
-    if (loading || user || redirectingToLogin) {
-      return;
-    }
-    setRedirectingToLogin(true);
-    loginWithDiscord();
-  }, [loading, user, redirectingToLogin]);
+  // Discord login redirect disabled - auth is skipped in development
+  // useEffect(() => {
+  //   if (loading || user || redirectingToLogin) {
+  //     return;
+  //   }
+  //   setRedirectingToLogin(true);
+  //   loginWithDiscord();
+  // }, [loading, user, redirectingToLogin]);
 
   useEffect(() => {
     if (!user) {
@@ -40,7 +45,7 @@ function App() {
     }
   }, [user]);
 
-  if (loading || !user) {
+  if (loading) {
     return <div className="page-loading-skeleton" />;
   }
 
@@ -48,6 +53,9 @@ function App() {
     <React.Suspense fallback={<div className="page-loading-skeleton" />}>
       <LegalPopup isOpen={isLegalPopupOpen} onClose={() => setIsLegalPopupOpen(false)} />
       <ChangelogPopup isOpen={isChangelogPopupOpen} onClose={() => setIsChangelogPopupOpen(false)} />
+      <AboutPopup isOpen={isAboutPopupOpen} onClose={() => setIsAboutPopupOpen(false)} />
+      <SupportPopup isOpen={isSupportPopupOpen} onClose={() => setIsSupportPopupOpen(false)} />
+
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route
@@ -55,6 +63,8 @@ function App() {
             element={(
               <MainPage
                 onOpenLegalPopup={() => setIsLegalPopupOpen(true)}
+                onOpenAboutPopup={() => setIsAboutPopupOpen(true)}
+                onOpenSupportPopup={() => setIsSupportPopupOpen(true)}
               />
             )}
           />

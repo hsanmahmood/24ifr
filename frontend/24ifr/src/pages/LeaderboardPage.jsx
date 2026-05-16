@@ -1,37 +1,61 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { loadLeaderboard } from '../services/api';
 
-const LeaderboardSkeleton = () => (
-    <div className="bg-surface-dark border border-border-dark rounded-lg overflow-hidden shadow-sm animate-fadeIn">
-        <div className="bg-zinc-900/50 border-b border-border-dark px-6 py-4">
-            <div className="flex gap-4">
-                <div className="skeleton h-4 w-12"></div>
-                <div className="skeleton h-4 w-40"></div>
-                <div className="skeleton h-4 w-20 ml-auto"></div>
-            </div>
+const TotalClearancesSkeleton = () => (
+    <div className="bg-surface-dark border border-border-dark p-6 rounded-lg shadow-sm relative overflow-hidden group">
+        <div className="skeleton h-3 w-32 rounded mb-3"></div>
+        <div className="skeleton h-9 w-28 rounded"></div>
+    </div>
+);
+
+const LeaderboardTableSkeleton = () => (
+    <div className="bg-surface-dark border border-border-dark rounded-lg overflow-hidden shadow-sm">
+        <div className="px-6 py-4 border-b border-border-dark">
+            <div className="skeleton h-6 w-44 rounded"></div>
         </div>
-        <div className="divide-y divide-border-dark">
-            {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="px-6 py-4 flex items-center gap-4">
-                    <div className="skeleton h-6 w-8"></div>
-                    <div className="skeleton h-10 w-10 rounded-full"></div>
-                    <div className="skeleton h-6 w-32"></div>
-                    <div className="skeleton h-6 w-16 ml-auto"></div>
-                </div>
-            ))}
+        <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm text-zinc-400">
+                <thead className="bg-zinc-900/50 text-xs uppercase font-bold text-zinc-500">
+                    <tr>
+                        <th className="px-6 py-4 tracking-wider">Rank</th>
+                        <th className="px-6 py-4 tracking-wider">Controller</th>
+                        <th className="px-6 py-4 tracking-wider text-right">Clearances</th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                        <tr key={i}>
+                            <td className="px-6 py-4">
+                                <div className="skeleton h-5 w-10 rounded"></div>
+                            </td>
+                            <td className="px-6 py-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="skeleton h-8 w-8 rounded-full"></div>
+                                    <div className="skeleton h-5 w-36 rounded"></div>
+                                </div>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                                <div className="inline-block skeleton h-5 w-14 rounded"></div>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
         </div>
     </div>
 );
 
 const LeaderboardPage = () => {
-    const [stats, setStats] = useState([]);
+    const { user } = useAuth();
+    const [data, setData] = useState({ total_clearances: 0, leaderboard: [] });
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const data = await loadLeaderboard();
-                setStats(Array.isArray(data) ? data : []);
+                const res = await loadLeaderboard();
+                setData(res || { total_clearances: 0, leaderboard: [] });
             } catch (err) {
                 console.error(err);
             } finally {
@@ -42,102 +66,73 @@ const LeaderboardPage = () => {
     }, []);
 
     return (
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pt-20 lg:pt-8 animate-fadeIn">
-            <header className="mb-8 flex justify-between items-end">
-                <div>
-                    <h1 className="font-display text-4xl font-bold text-white uppercase tracking-tight">
-                        Controller <span className="text-primary">Leaderboard</span>
-                    </h1>
-                    <p className="text-zinc-500 text-sm mt-1 uppercase tracking-widest font-medium">Top Clearance Delivery Rankings</p>
-                </div>
-                <div className="text-right hidden sm:block">
-                    <div className="text-zinc-500 text-[10px] uppercase tracking-tighter font-bold">Total Clearances Tracked</div>
-                    <div className="text-2xl font-display font-bold text-white leading-none">
-                        {stats.reduce((acc, row) => acc + (row.clearance_count || 0), 0)}
-                    </div>
-                </div>
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-8 pt-20 lg:pt-8">
+            <header>
+                <h1 className="font-display text-3xl font-bold text-white mb-2 uppercase tracking-wide">Leaderboard</h1>
+                {!user && <p className="text-zinc-500">Login to be on the leaderboard.</p>}
             </header>
 
-            {loading ? (
-                <LeaderboardSkeleton />
-            ) : stats.length === 0 ? (
-                <div className="bg-surface-dark border border-border-dark rounded-lg p-12 text-center">
-                    <span className="material-symbols-outlined text-4xl text-zinc-700 mb-4">leaderboard</span>
-                    <p className="text-zinc-500 uppercase tracking-widest text-sm font-bold">No ranking data available yet</p>
-                </div>
-            ) : (
-                <div className="bg-surface-dark border border-border-dark rounded-lg overflow-hidden shadow-2xl relative">
-                    <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-zinc-900/80 border-b border-border-dark">
-                                <th className="px-6 py-5 text-[11px] font-black text-zinc-400 uppercase tracking-[0.2em]">Rank</th>
-                                <th className="px-6 py-5 text-[11px] font-black text-zinc-400 uppercase tracking-[0.2em]">Controller Name</th>
-                                <th className="px-6 py-5 text-[11px] font-black text-zinc-400 uppercase tracking-[0.2em] text-right">Clearance Count</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border-dark/50">
-                            {stats.map((row, i) => {
-                                const isTop3 = i < 3;
-                                const rankColors = [
-                                    'text-[#FACC15]', // Gold
-                                    'text-[#E2E2E2]', // Silver
-                                    'text-[#CD7F32]', // Bronze
-                                ];
-                                
-                                return (
-                                    <tr key={i} className="hover:bg-primary/[0.03] transition-all duration-150 group cursor-default">
-                                        <td className="px-6 py-4">
-                                            <div className={`font-display text-xl font-black ${isTop3 ? rankColors[i] : 'text-zinc-700'} transition-colors group-hover:text-primary/80`}>
-                                                {String(i + 1).padStart(2, '0')}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-4">
-                                                <div className="relative">
-                                                    <img 
-                                                        src={row.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'} 
-                                                        className={`w-10 h-10 rounded-full border-2 ${isTop3 ? 'border-primary/20' : 'border-zinc-800'} transition-transform group-hover:scale-105 duration-200`} 
-                                                        alt="" 
-                                                    />
-                                                    {isTop3 && (
-                                                        <div className="absolute -top-1 -right-1 bg-primary text-black rounded-full p-0.5 shadow-lg">
-                                                            <span className="material-symbols-outlined text-[10px] font-bold">star</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div>
-                                                    <span className="text-base font-bold text-zinc-100 group-hover:text-white transition-colors">{row.username}</span>
-                                                    <div className="text-[10px] text-zinc-600 uppercase tracking-widest font-black leading-none">Verified Controller</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex flex-col items-end">
-                                                <span className="text-xl font-display font-black text-white group-hover:text-primary transition-colors">
-                                                    {row.clearance_count}
-                                                </span>
-                                                <div className="h-1.5 w-24 bg-zinc-900 rounded-full mt-1 overflow-hidden">
-                                                    <div 
-                                                        className="h-full bg-primary/40 group-hover:bg-primary transition-all duration-500 ease-out"
-                                                        style={{ width: `${(row.clearance_count / stats[0].clearance_count) * 100}%` }}
-                                                    ></div>
-                                                </div>
-                                            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {loading ? <TotalClearancesSkeleton /> : (
+                    <div className="bg-surface-dark border border-border-dark p-6 rounded-lg shadow-sm relative overflow-hidden group">
+                        <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <span className="material-symbols-outlined text-6xl text-primary">analytics</span>
+                        </div>
+                        <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Total Clearances</p>
+                        <p className="font-display text-3xl font-bold text-white">{data.total_clearances.toLocaleString()}</p>
+                    </div>
+                )}
+            </div>
+
+            {loading ? <LeaderboardTableSkeleton /> : (
+                <div className="bg-surface-dark border border-border-dark rounded-lg overflow-hidden shadow-sm">
+                    <div className="px-6 py-4 border-b border-border-dark">
+                        <h2 className="font-display text-lg font-bold text-white tracking-wide uppercase">Top Controllers</h2>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm text-zinc-400">
+                            <thead className="bg-zinc-900/50 text-xs uppercase font-bold text-zinc-500">
+                                <tr>
+                                    <th className="px-6 py-4 tracking-wider">Rank</th>
+                                    <th className="px-6 py-4 tracking-wider">Controller</th>
+                                    <th className="px-6 py-4 tracking-wider text-right">Clearances</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-800">
+                                {data.leaderboard.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="3" className="px-6 py-8 text-center text-zinc-600">
+                                            No data available yet.
                                         </td>
                                     </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+                                ) : (
+                                    data.leaderboard.map((u, index) => (
+                                        <tr key={u.user_id || index} className="hover:bg-zinc-900/50 transition-colors">
+                                            <td className="px-6 py-4 font-medium text-white">
+                                                {index + 1 === 1 ? '≡ƒÑç' : index + 1 === 2 ? '≡ƒÑê' : index + 1 === 3 ? '≡ƒÑë' : `#${index + 1}`}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <img
+                                                        src={u.avatar}
+                                                        alt={u.username}
+                                                        className="w-8 h-8 rounded-full border border-zinc-700"
+                                                        onError={(e) => { e.target.src = 'https://cdn.discordapp.com/embed/avatars/0.png' }}
+                                                    />
+                                                    <span className="font-medium text-white">{u.username}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-right font-display font-medium text-primary">
+                                                {u.total_generations}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
-            
-            <footer className="mt-8 text-center">
-                <p className="text-zinc-600 text-[10px] uppercase tracking-[0.3em] font-bold">
-                    Ranking based on real-time clearance generations since launch
-                </p>
-            </footer>
         </main>
     );
 };

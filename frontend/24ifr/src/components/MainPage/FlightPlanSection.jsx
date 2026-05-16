@@ -10,7 +10,8 @@ const FlightPlanSection = ({
     currentPage, 
     totalPages, 
     onPageChange, 
-    onRefresh 
+    onRefresh,
+    refreshLoading 
 }) => {
     return (
         <div className="bg-surface-dark border border-border-dark rounded-lg flex flex-col shadow-sm">
@@ -19,7 +20,8 @@ const FlightPlanSection = ({
                     <h2 className="font-display text-lg font-bold text-white tracking-wide uppercase">Flight Plans</h2>
                 </div>
                 <button 
-                    onClick={onRefresh} 
+                    onClick={refreshLoading ? undefined : onRefresh}
+                    aria-busy={refreshLoading}
                     className="bg-zinc-900 hover:bg-primary text-zinc-400 hover:text-black border border-zinc-800 hover:border-primary px-3 py-2 rounded transition-all flex items-center gap-2 group text-xs font-medium uppercase tracking-wider"
                 >
                     <span className="material-symbols-outlined text-base group-hover:rotate-180 transition-transform">refresh</span>
@@ -30,7 +32,7 @@ const FlightPlanSection = ({
                 flightPlans={plans}
                 selectedFlightPlan={selected}
                 onSelectFlightPlan={onSelect}
-                loading={loading}
+                loading={loading || refreshLoading}
                 error={error}
                 currentPage={currentPage}
                 totalPages={totalPages}

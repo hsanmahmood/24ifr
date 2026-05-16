@@ -4,7 +4,7 @@ import { useSettings } from '../context/SettingsContext';
 import { generateAirports } from '../data/airports';
 import { FREQ_LIST } from '../data/frequencies';
 
-const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, onAirportChange, canGenerate = true }) => {
+const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, generationLoading = false, onAirportChange, canGenerate = true }) => {
     const { settings } = useSettings();
     
     const normalizeCode = (v) => (v || '').toString().trim().toUpperCase();
@@ -16,7 +16,7 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, onAirpor
     const [atisLetter, setAtisLetter] = useState(() => settings.defaultAtisLetter || '');
     const [routing, setRouting] = useState(() => settings.defaultRouting || 'As Filed');
     const [routingDetails, setRoutingDetails] = useState(() => settings.defaultRoutingDetails || '');
-    const [initialClimb, setInitialClimb] = useState(() => settings.defaultInitialClimb || '');
+    const [initialClimb, setInitialClimb] = useState(() => settings.defaultInitialClimb || '2000');
     const [autoFilled, setAutoFilled] = useState({ runway: false, atis: false });
     const [availableStations, setAvailableStations] = useState([]);
     const [availableAirports, setAvailableAirports] = useState([]);
@@ -130,10 +130,9 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, onAirpor
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (canGenerate) onGenerateClearance({ station, runway, routing, routingDetails, initialClimb, atisLetter });
+        if (!canGenerate || generationLoading) return;
+        onGenerateClearance({ station, runway, routing, routingDetails, initialClimb, atisLetter });
     };
-
-    if (loading) return <div className="skeleton-atc-settings" />;
 
     return (
         <div className="bg-surface-dark border border-border-dark rounded-lg p-6 shadow-lg">
@@ -174,20 +173,21 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, onAirpor
                             <Combobox options={Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)).map(l => ({ label: `Info ${l}`, value: l }))} value={atisLetter} onChange={val => { setAtisLetter(val); setAutoFilled(p => ({ ...p, atis: false })); }} placeholder="Select" />
                         </div>
                     </div>
-                    <Combobox label="Routing Type" options={[{ label: 'As Filed', value: 'As Filed' }, { label: 'SID', value: 'SID' }, { label: 'Vectors', value: 'VECTORS' }, { label: 'Direct', value: 'DIRECT' }]} value={routing} onChange={v => { setRouting(v); if (v === 'As Filed') setRoutingDetails(''); }} />
+                    <Combobox label="Routing Type" options={[{ label: 'As Filed', value: 'As Filed' }, { label: 'SID', value: 'SID' }, { label: 'Radar Vectors', value: 'VECTORS' }, { label: 'Direct', value: 'DIRECT' }]} value={routing} onChange={v => { setRouting(v); if (v === 'As Filed') setRoutingDetails(''); }} />
                     {(routing === 'SID' || routing === 'DIRECT') && <input type="text" value={routingDetails} onChange={e => setRoutingDetails(e.target.value)} placeholder={routing === 'SID' ? 'SID name' : 'Waypoint'} className="w-full bg-black/50 border border-zinc-800 text-white text-sm rounded px-3 py-2.5 focus:border-primary outline-none" required />}
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Initial Climb</label>
                         <input list="climb-levels" type="text" value={initialClimb} onChange={e => setInitialClimb(e.target.value)} className="w-full bg-black/50 border border-zinc-800 text-white text-sm rounded px-3 py-2.5 focus:border-primary outline-none" />
                         <datalist id="climb-levels">
-                            <option value="3000" /><option value="4000" /><option value="5000" /><option value="6000" />
+                            <option value="2000" /><option value="3000" /><option value="4000" /><option value="5000" /><option value="6000" />
                         </datalist>
                     </div>
                 </div>
-                <button type="submit" disabled={!canGenerate} className="w-full bg-primary hover:brightness-110 text-black font-bold uppercase tracking-widest py-3.5 rounded transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-40">
+                <button type="submit" className="w-full bg-primary hover:brightness-110 text-black font-bold uppercase tracking-widest py-3.5 rounded transition-all shadow-sm flex items-center justify-center gap-2">
                     <span className="material-symbols-outlined text-xl">check_circle</span> Generate
                 </button>
             </form>
+
         </div>
     );
 };

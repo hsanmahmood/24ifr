@@ -12,7 +12,7 @@ from .external_api import (
     generate_squawk,
 )
 
-DEFAULT_CLEARANCE_TEMPLATE = '{CALLSIGN}, cleared to {DESTINATION} via {ROUTE}. Runway {RUNWAY}. Climb and maintain {INITIAL_ALT}FT, expect Flight Level {FLIGHT_LEVEL}. Squawk {SQUAWK}. Information {ATIS} received.'
+DEFAULT_CLEARANCE_TEMPLATE = '{CALLSIGN}, {ATC_STATION}, good day. Startup approved. Information {ATIS} correct. Cleared {DESTINATION} via {ROUTE}, runway {RUNWAY}. Initial climb FT{INITIAL_ALT}. Squawk {SQUAWK}.'
 
 def health_check():
     try:

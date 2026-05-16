@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { loadUserClearances, loginWithDiscord } from '../services/api';
+import React, { useEffect, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { loadUserClearances, loginWithDiscord } from '../services/api';
 
 const ProfilePage = () => {
     const { user, loading: authLoading } = useAuth();

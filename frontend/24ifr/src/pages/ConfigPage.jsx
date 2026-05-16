@@ -13,6 +13,7 @@ const ConfigPage = () => {
     const [showExport, setShowExport] = useState(false);
     const [showPreview, setShowPreview] = useState(false);
     const [availableStations, setAvailableStations] = useState([]);
+    const [defaultSettingsEnabled, setDefaultSettingsEnabled] = useState(true);
     const textareaRef = useRef(null);
 
     useEffect(() => {
@@ -90,16 +91,26 @@ const ConfigPage = () => {
                 {showPreview && <div className="mt-4 p-4 bg-black/30 border border-zinc-800 rounded font-mono text-sm text-zinc-300 leading-relaxed wrap-break-word">{localSettings.clearanceTemplate}</div>}
             </div>
             <div className="bg-surface-dark border border-border-dark rounded-lg p-6 shadow-sm">
-                <h2 className="font-display text-lg font-bold text-white uppercase tracking-wide mb-6">Default Settings</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <Combobox label="Default ATC Station" options={availableStations.map(s => ({ label: `${s.label} [${s.holder}]`, value: s.value }))} value={localSettings.defaultAtcStation} onChange={v => updateLocal('defaultAtcStation', v)} placeholder="Select station" />
-                    <Combobox label="Default Routing" options={[{ label: 'As Filed', value: 'As Filed' }, { label: 'SID', value: 'SID' }, { label: 'Vectors', value: 'VECTORS' }, { label: 'Direct', value: 'DIRECT' }]} value={localSettings.defaultRouting} onChange={v => updateLocal('defaultRouting', v)} placeholder="Select routing" />
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="font-display text-lg font-bold text-white uppercase tracking-wide">Default Settings</h2>
+                    <label className="flex items-center gap-2 cursor-pointer" onClick={() => setDefaultSettingsEnabled(!defaultSettingsEnabled)}>
+                        <div className={`w-10 h-6 rounded-full transition-colors ${defaultSettingsEnabled ? 'bg-primary' : 'bg-zinc-700'}`}>
+                            <div className={`w-5 h-5 rounded-full bg-white transition-transform ${defaultSettingsEnabled ? 'translate-x-4' : 'translate-x-0.5'} m-0.5`}></div>
+                        </div>
+                        <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Enable</span>
+                    </label>
                 </div>
-                <label className="flex items-center gap-3 bg-black/30 border border-zinc-800 rounded px-4 py-3 mb-6">
-                    <input type="checkbox" checked={localSettings.uppercaseCallsign} onChange={e => updateLocal('uppercaseCallsign', e.target.checked)} className="h-4 w-4 accent-primary" />
-                    <span className="text-sm text-zinc-300">Uppercase callsign</span>
-                </label>
-                <div className="flex items-center gap-3 mb-2">
+                <div className={`space-y-4 transition-opacity ${!defaultSettingsEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <Combobox label="Default ATC Station" options={availableStations.map(s => ({ label: `${s.label} [${s.holder}]`, value: s.value }))} value={localSettings.defaultAtcStation} onChange={v => updateLocal('defaultAtcStation', v)} placeholder="Select station" />
+                        <Combobox label="Default Routing" options={[{ label: 'As Filed', value: 'As Filed' }, { label: 'SID', value: 'SID' }, { label: 'Radar Vectors', value: 'VECTORS' }, { label: 'Direct', value: 'DIRECT' }]} value={localSettings.defaultRouting} onChange={v => updateLocal('defaultRouting', v)} placeholder="Select routing" />
+                    </div>
+                    <label className="flex items-center gap-3 bg-black/30 border border-zinc-800 rounded px-4 py-3">
+                        <input type="checkbox" checked={localSettings.uppercaseCallsign} onChange={e => updateLocal('uppercaseCallsign', e.target.checked)} className="h-4 w-4 accent-primary" />
+                        <span className="text-sm text-zinc-300">Uppercase callsign</span>
+                    </label>
+                </div>
+                <div className="flex items-center gap-3 mt-6">
                     <button onClick={handleSave} className="bg-primary hover:brightness-110 text-black font-bold uppercase tracking-widest py-2 px-6 rounded transition-all text-sm flex items-center gap-2"><span className="material-symbols-outlined text-lg">save</span> Save Settings</button>
                     <button onClick={handleReset} className="text-zinc-500 hover:text-white px-4 py-2 text-sm uppercase tracking-wider font-bold transition-colors">Reset to Default</button>
                 </div>

@@ -100,9 +100,9 @@ const LeaderboardPage = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-surface-dark border border-border-dark p-6 rounded-lg shadow-sm relative overflow-hidden group">
                     <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Total Clearances</p>
-                    <div className="inline-flex h-12 min-w-12 items-center justify-center rounded-md bg-zinc-900 border border-zinc-700 px-4 text-2xl font-bold text-white">
-                        {data.total_clearances.toLocaleString()}
-                    </div>
+                        <div className="inline-flex h-12 min-w-12 items-center justify-center rounded-md bg-zinc-900 border border-zinc-700 px-4 text-2xl font-bold text-white">
+                            {data.total_clearances.toLocaleString()}
+                        </div>
                 </div>
             </div>
 
