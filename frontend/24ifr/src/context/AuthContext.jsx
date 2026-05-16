@@ -1,55 +1,49 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as api from '../services/api';
 
-const AuthContext = createContext(null);
+const SKIP_AUTH = true; // TEMP: Skip Discord auth requirement
+
+const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [loading, setLoading] = useState(true);
+    const [authState, setAuthState] = useState({
+        user: null,
+        loading: true
+    });
 
-    useEffect(() => {
-        const checkStatus = async () => {
-            try {
-                const data = await api.checkAuthStatus();
-                if (data.authenticated) {
-                    setUser(data.user);
-                    setIsAuthenticated(true);
-                }
-            } catch (error) {
-                console.error("Failed to check auth status:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        checkStatus();
-    }, []);
-
-    const login = () => {
-        api.loginWithDiscord();
+    const checkAuth = async () => {
+        try {
+            const data = await api.checkAuthStatus();
+            setAuthState({
+                user: data.authenticated ? data.user : (SKIP_AUTH ? { id: null, discord_id: null, username: 'Guest', avatar: null } : null),
+                loading: false
+            });
+        } catch {
+            setAuthState({ user: SKIP_AUTH ? { id: null, discord_id: null, username: 'Guest', avatar: null } : null, loading: false });
+        }
     };
 
     const logout = async () => {
         await api.logout();
-        setUser(null);
-        setIsAuthenticated(false);
+        setAuthState({ user: null, loading: false });
     };
 
-    const value = {
-        user,
-        isAuthenticated,
-        loading,
-        login,
-        logout,
-    };
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        checkAuth();
+    }, []);
 
     return (
-        <AuthContext.Provider value={value}>
+        <AuthContext.Provider value={{ 
+            user: authState.user, 
+            isAuthenticated: !!authState.user,
+            loading: authState.loading, 
+            logout, 
+            refreshAuth: checkAuth 
+        }}>
             {children}
         </AuthContext.Provider>
     );
 };
 
-export const useAuth = () => {
-    return useContext(AuthContext);
-};
+export const useAuth = () => useContext(AuthContext);

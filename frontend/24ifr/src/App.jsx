@@ -15,6 +15,15 @@ function App() {
   const { user, loading } = useAuth();
   const [isLegalPopupOpen, setIsLegalPopupOpen] = useState(false);
   const [isChangelogPopupOpen, setIsChangelogPopupOpen] = useState(false);
+  const [redirectingToLogin, setRedirectingToLogin] = useState(false);
+
+  useEffect(() => {
+    if (loading || user || redirectingToLogin) {
+      return;
+    }
+    setRedirectingToLogin(true);
+    loginWithDiscord();
+  }, [loading, user, redirectingToLogin]);
 
   useEffect(() => {
     if (!user) {
@@ -31,25 +40,8 @@ function App() {
     }
   }, [user]);
 
-  if (loading) {
+  if (loading || !user) {
     return <div className="page-loading-skeleton" />;
-  }
-
-  if (!user) {
-    return (
-      <main className="min-h-screen bg-background-dark flex items-center justify-center px-4">
-        <div className="w-full max-w-sm rounded-lg border border-border-dark bg-surface-dark p-8 text-center shadow-lg">
-          <img src="/logo.png" alt="24IFR" className="mx-auto h-16 w-auto object-contain" />
-          <button
-            type="button"
-            onClick={loginWithDiscord}
-            className="mt-6 w-full rounded-md bg-primary px-4 py-3 text-sm font-bold uppercase tracking-widest text-black transition-all hover:brightness-95"
-          >
-            Login with Discord
-          </button>
-        </div>
-      </main>
-    );
   }
 
   return (

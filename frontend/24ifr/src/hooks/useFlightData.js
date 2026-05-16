@@ -1,51 +1,56 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import * as api from '../services/api';
 
 export const useFlightData = () => {
-    const [flightPlans, setFlightPlans] = useState([]);
-    const [controllers, setControllers] = useState([]);
-    const [atis, setAtis] = useState([]);
-    const [selectedFlightPlan, setSelectedFlightPlan] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [data, setData] = useState({
+        plans: [],
+        controllers: [],
+        atis: [],
+        selected: null,
+        loading: true,
+        error: null
+    });
 
-    const fetchData = useCallback(async () => {
+    const refresh = useCallback(async () => {
         try {
-            setLoading(true);
-            const [plans, ctrls, atisData] = await Promise.all([
+            const [p, c, a] = await Promise.all([
                 api.loadFlightPlans(),
                 api.loadControllers(),
-                api.loadAtis(),
+                api.loadAtis()
             ]);
-            setFlightPlans(plans);
-            setControllers(ctrls);
-            setAtis(atisData);
-            if (plans.length > 0) {
-                setSelectedFlightPlan(plans[0]);
-            }
+
+            setData(prev => {
+                const stillExists = p.find(plan => plan.callsign === prev.selected?.callsign);
+                return {
+                    plans: p,
+                    controllers: c,
+                    atis: a,
+                    selected: stillExists || p[0] || null,
+                    loading: false,
+                    error: null
+                };
+            });
         } catch (err) {
-            setError(err);
-        } finally {
-            setLoading(false);
+            setData(prev => ({ ...prev, loading: false, error: err.message }));
         }
     }, []);
 
     useEffect(() => {
-        fetchData();
-    }, [fetchData]);
+        refresh();
+        const interval = setInterval(refresh, 45000);
+        return () => clearInterval(interval);
+    }, [refresh]);
 
-    const selectFlightPlan = (plan) => {
-        setSelectedFlightPlan(plan);
-    };
+    const selectPlan = (plan) => setData(prev => ({ ...prev, selected: plan }));
 
     return {
-        flightPlans,
-        controllers,
-        atis,
-        selectedFlightPlan,
-        loading,
-        error,
-        selectFlightPlan,
-        refreshData: fetchData,
+        flightPlans: data.plans,
+        controllers: data.controllers,
+        atis: data.atis,
+        selectedFlightPlan: data.selected,
+        loading: data.loading,
+        error: data.error,
+        selectFlightPlan: selectPlan,
+        refreshData: refresh
     };
 };

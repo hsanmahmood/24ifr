@@ -1,0 +1,25 @@
+{
+  "name": "24IFR",
+  "short_name": "24IFR",
+  "description": "ATC24 IFR clearance generator",
+  "start_url": "/",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#000000",
+  "background_color": "#000000",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
