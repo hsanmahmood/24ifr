@@ -2,21 +2,35 @@ import React from 'react';
 
 export const CHANGELOG_POPUP_STORAGE_KEY = '24ifr_changelog_dismissed_v1';
 
-const changelogItems = [
-    'Added placeholder updates for the new release flow.',
-    'Improved popup timing so it shows after the app finishes loading.',
-    'Small UI polish and layout cleanup across the dashboard.',
-];
+const escapeHtml = (str = '') => str.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 
-const ChangelogPopup = ({ isOpen, onClose }) => {
-    if (!isOpen) {
-        return null;
-    }
+const renderMarkdown = (md = '') => {
+    const text = String(md || '');
+    // basic conversions: headings, bold, italic, links, lists, paragraphs
+    let out = escapeHtml(text);
+    out = out.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+    out = out.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+    out = out.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+    out = out.replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>');
+    out = out.replace(/\*(.*?)\*/gim, '<em>$1</em>');
+    out = out.replace(/\[(.*?)\]\((.*?)\)/gim, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    // lists
+    out = out.replace(/^[-\*] (.*$)/gim, '<li>$1</li>');
+    out = out.replace(/(<li>.*<\/li>)/gims, '<ul>$1</ul>');
+    // paragraphs
+    out = out.replace(/^(?!<h|<ul|<li|<h\d)(.+)$/gim, '<p>$1</p>');
+    return out;
+};
+
+const ChangelogPopup = ({ isOpen, onClose, content = '' }) => {
+    if (!isOpen) return null;
 
     const handleClose = () => {
         window.localStorage.setItem(CHANGELOG_POPUP_STORAGE_KEY, 'true');
         onClose?.();
     };
+
+    const html = renderMarkdown(content || '') || '<p class="text-zinc-400">No updates found.</p>';
 
     return (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm">
@@ -26,12 +40,7 @@ const ChangelogPopup = ({ isOpen, onClose }) => {
                     <h2 className="mt-1 text-xl font-bold text-white">Changelog</h2>
                 </div>
                 <div className="space-y-3 px-5 py-5 text-sm leading-6 text-zinc-300">
-                    <p className="text-zinc-400">Placeholder text for now — we will replace this later.</p>
-                    <ul className="list-disc space-y-2 pl-5 text-zinc-300">
-                        {changelogItems.map((item) => (
-                            <li key={item}>{item}</li>
-                        ))}
-                    </ul>
+                    <div dangerouslySetInnerHTML={{ __html: html }} />
                 </div>
                 <div className="flex justify-end border-t border-border-dark px-5 py-4">
                     <button

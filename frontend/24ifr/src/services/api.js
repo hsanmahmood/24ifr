@@ -83,3 +83,15 @@ export const updateUserSettings = (partial) => {
     localStorage.setItem(USER_SETTINGS_KEY, JSON.stringify(next));
     return next;
 };
+
+export const loadPublicDocuments = async () => {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/admin/documents`);
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data.documents || [];
+    } catch (e) {
+        console.warn('Failed to load public documents', e);
+        return [];
+    }
+};

@@ -6,6 +6,7 @@ import ChangelogPopup, { CHANGELOG_POPUP_STORAGE_KEY } from './components/Change
 import MainPage from './pages/MainPage';
 import AboutPopup from './components/AboutPopup';
 import SupportPopup from './components/SupportPopup';
+import { loadPublicDocuments } from './services/api';
 import { useAuth } from './context/AuthContext';
 import { loginWithDiscord } from './services/api';
 
@@ -19,6 +20,7 @@ function App() {
   const [isChangelogPopupOpen, setIsChangelogPopupOpen] = useState(false);
   const [isAboutPopupOpen, setIsAboutPopupOpen] = useState(false);
   const [isSupportPopupOpen, setIsSupportPopupOpen] = useState(false);
+  const [publicDocs, setPublicDocs] = useState([]);
   const [redirectingToLogin, setRedirectingToLogin] = useState(false);
 
   // Discord login redirect disabled - auth is skipped in development
@@ -31,19 +33,32 @@ function App() {
   // }, [loading, user, redirectingToLogin]);
 
   useEffect(() => {
-    if (!user) {
-      return;
-    }
     const dismissed = window.localStorage.getItem(LEGAL_POPUP_STORAGE_KEY) === 'true';
-    if (!dismissed) {
-      setIsLegalPopupOpen(true);
-    }
+    if (!dismissed) setIsLegalPopupOpen(true);
 
-    const changelogDismissed = window.localStorage.getItem(CHANGELOG_POPUP_STORAGE_KEY) === 'true';
-    if (!changelogDismissed) {
-      window.setTimeout(() => setIsChangelogPopupOpen(true), 600);
-    }
-  }, [user]);
+    const checkDocs = async () => {
+      const docs = await loadPublicDocuments();
+      setPublicDocs(docs);
+
+      const changelog = docs.find(d => d.doc_key === 'changelog');
+      if (changelog) {
+        const keyUpdated = '24ifr_changelog_updated_at_v1';
+        const prev = window.localStorage.getItem(keyUpdated) || '';
+        const updatedAt = changelog.updated_at || '';
+        if (prev !== updatedAt) {
+          window.localStorage.setItem(CHANGELOG_POPUP_STORAGE_KEY, 'false');
+          window.localStorage.setItem(keyUpdated, updatedAt);
+        }
+      }
+
+      const changelogDismissed = window.localStorage.getItem(CHANGELOG_POPUP_STORAGE_KEY) === 'true';
+      if (!changelogDismissed) {
+        window.setTimeout(() => setIsChangelogPopupOpen(true), 600);
+      }
+    };
+
+    checkDocs();
+  }, []);
 
   if (loading) {
     return <div className="page-loading-skeleton" />;
@@ -52,9 +67,9 @@ function App() {
   return (
     <React.Suspense fallback={<div className="page-loading-skeleton" />}>
       <LegalPopup isOpen={isLegalPopupOpen} onClose={() => setIsLegalPopupOpen(false)} />
-      <ChangelogPopup isOpen={isChangelogPopupOpen} onClose={() => setIsChangelogPopupOpen(false)} />
-      <AboutPopup isOpen={isAboutPopupOpen} onClose={() => setIsAboutPopupOpen(false)} />
-      <SupportPopup isOpen={isSupportPopupOpen} onClose={() => setIsSupportPopupOpen(false)} />
+      <ChangelogPopup isOpen={isChangelogPopupOpen} onClose={() => setIsChangelogPopupOpen(false)} content={publicDocs.find(d => d.doc_key === 'changelog')?.content_md || ''} />
+      <AboutPopup isOpen={isAboutPopupOpen} onClose={() => setIsAboutPopupOpen(false)} content={publicDocs.find(d => d.doc_key === 'credits')?.content_md || ''} />
+      <SupportPopup isOpen={isSupportPopupOpen} onClose={() => setIsSupportPopupOpen(false)} content={publicDocs.find(d => d.doc_key === 'support')?.content_md || ''} />
 
       <Routes>
         <Route path="/" element={<Layout />}>

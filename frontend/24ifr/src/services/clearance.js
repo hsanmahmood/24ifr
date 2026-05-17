@@ -164,8 +164,6 @@ export const formatFlightLevel = (fl) => {
 export const resolveRouting = ({ flightPlan, routing, details, settings }) => {
     const s = normalizeSettings(settings);
     const mode = routing || s.defaultRouting;
-    const d = details || s.defaultRoutingDetails || '';
-
     if (mode === 'As Filed') return flightPlan?.route || '';
     if (mode === 'SID') return d ? `the ${d} departure` : 'the departure procedure';
     if (mode === 'DIRECT') return d ? `direct ${d}` : (flightPlan?.route || 'direct');

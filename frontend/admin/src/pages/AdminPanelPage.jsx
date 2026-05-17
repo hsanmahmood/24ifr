@@ -228,7 +228,7 @@ const AdminPanelPage = () => {
         return (
             <main className="flex-1 p-8 flex flex-col items-center justify-center text-center space-y-6 pt-20 lg:pt-8">
                 <div className="bg-surface-dark border border-border-dark p-8 rounded-lg max-w-md w-full shadow-lg">
-                    <span className="material-symbols-outlined text-6xl text-zinc-600 mb-4">admin_panel_settings</span>
+                    <div className="text-6xl text-zinc-600 mb-4">⚙️</div>
                     <h2 className="text-2xl font-display font-bold text-white mb-2">Admin Access</h2>
                     <p className="text-zinc-400 mb-8">Please log in with Discord to access the admin panel.</p>
                     <button
