@@ -101,6 +101,21 @@ export const loadAdminDailyClearances = async (days = 14) => {
     return handleResponse(response);
 };
 
+export const loadClearancesPerDay = async () => {
+    const response = await fetchWithCredentials(`${API_BASE_URL}/api/admin/analytics/clearances-per-day`);
+    return handleResponse(response);
+};
+
+export const loadClearancesLast7 = async () => {
+    const response = await fetchWithCredentials(`${API_BASE_URL}/api/admin/analytics/clearances-last-7-days`);
+    return handleResponse(response);
+};
+
+export const loadClearancesLast30 = async () => {
+    const response = await fetchWithCredentials(`${API_BASE_URL}/api/admin/analytics/clearances-last-30-days`);
+    return handleResponse(response);
+};
+
 export const loadAdminUserGrowth = async (days = 30) => {
     const response = await fetchWithCredentials(`${API_BASE_URL}/api/admin/user-growth?days=${days}`);
     return handleResponse(response);

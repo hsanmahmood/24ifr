@@ -13,6 +13,18 @@ const Icon = ({ name, className = '' }) => {
                     <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zM13 3v6h8V3h-8zm0 8v10h8V11h-8z" />
                 </svg>
             )
+        case 'home':
+            return (
+                <svg className={`${base}`} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+                </svg>
+            )
+        case 'leaderboard':
+            return (
+                <svg className={`${base}`} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M5 9.2V19h14V9.2L12 3 5 9.2zM7 11h2v6H7v-6zm4 2h2v4h-2v-4zm4-4h2v8h-2V9z" />
+                </svg>
+            )
         case 'menu':
             return (
                 <svg className={`${base}`} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -59,7 +71,7 @@ const Sidebar = () => {
     };
 
     const navItems = [
-        { to: '/', icon: 'home', label: 'Document editor', end: true },
+        { to: '/', icon: 'home', label: 'Document Editor', end: true },
         { to: '/analytics', icon: 'leaderboard', label: 'Analytics' },
     ];
 

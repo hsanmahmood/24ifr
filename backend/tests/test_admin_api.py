@@ -16,7 +16,9 @@ class FakeFrom:
     def execute(self):
         return FakeResp(self.ret, None)
     def upsert(self, payload, on_conflict=None):
-        return FakeResp([payload], None)
+        # emulate chainable API where upsert(...).execute() returns response
+        self.ret = [payload]
+        return self
 
 class FakeRPC:
     def __init__(self, ret):
@@ -50,6 +52,7 @@ def client(monkeypatch):
     monkeypatch.setattr(api, 'supabase', fake)
     # Ensure tests see admin session
     flask_app.config['TESTING'] = True
+    flask_app.config['SESSION_COOKIE_DOMAIN'] = None
     with flask_app.test_client() as c:
         with c.session_transaction() as sess:
             sess['user'] = {'id': 1, 'is_admin': True}
@@ -73,10 +76,10 @@ def test_load_admin_clearances_daily(client):
     resp = client.get('/api/admin/clearances/daily?days=7')
     assert resp.status_code == 200
     data = json.loads(resp.data)
-    assert 'series' in data
+    assert isinstance(data, list)
 
 def test_load_admin_user_growth(client):
     resp = client.get('/api/admin/user-growth?days=30')
     assert resp.status_code == 200
     data = json.loads(resp.data)
-    assert 'series' in data
+    assert isinstance(data, list)

@@ -5,7 +5,6 @@ import {
     loginWithDiscord,
     loadAdminDocuments,
     saveAdminDocument,
-    loadAdminDailyClearances,
 } from '../services/api';
 
 const DOC_ORDER = ['privacy_terms', 'credits', 'support', 'changelog'];
@@ -17,51 +16,7 @@ const DOC_LABELS = {
     changelog: 'Changelog',
 };
 
-const ChartPanel = ({ series, loading }) => {
-    const maxCount = useMemo(() => {
-        if (!series.length) {
-            return 1;
-        }
-        return Math.max(...series.map((item) => item.count), 1);
-    }, [series]);
-
-    return (
-        <section className="bg-surface-dark border border-border-dark rounded-lg p-5 md:p-6 shadow-sm">
-            <div className="flex items-center justify-between gap-4">
-                <div>
-                    <h2 className="font-display text-lg font-bold text-white tracking-wide uppercase">Daily Clearances</h2>
-                    <p className="mt-1 text-xs text-zinc-500 uppercase tracking-wider">Last 14 days</p>
-                </div>
-            </div>
-
-            {loading ? (
-                <div className="mt-6 h-44 skeleton rounded" />
-            ) : (
-                <div className="mt-6 rounded-lg border border-zinc-800 bg-black/30 p-4">
-                    <div className="flex h-40 items-end gap-2">
-                        {series.map((item) => {
-                            const heightPct = Math.max((item.count / maxCount) * 100, item.count > 0 ? 8 : 3);
-                            const dateText = item.date.slice(5);
-                            return (
-                                <div key={item.date} className="flex flex-1 flex-col items-center gap-2">
-                                    <span className="text-[10px] text-zinc-500">{item.count}</span>
-                                    <div className="relative flex h-28 w-full items-end">
-                                        <div
-                                            className="w-full rounded-t bg-primary/90"
-                                            style={{ height: `${heightPct}%` }}
-                                            title={`${item.date}: ${item.count}`}
-                                        />
-                                    </div>
-                                    <span className="text-[10px] text-zinc-600">{dateText}</span>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
-        </section>
-    );
-};
+// Analytics charts moved to separate page. Document Editor focuses on saving documents.
 
 const DocumentsPanel = ({
     documents,
@@ -149,8 +104,9 @@ const AdminPanelPage = () => {
     const [editorTitle, setEditorTitle] = useState('');
     const [editorContent, setEditorContent] = useState('');
     const [saving, setSaving] = useState(false);
+    const [saveMessage, setSaveMessage] = useState(null);
+    const [saveError, setSaveError] = useState(null);
 
-    const [series, setSeries] = useState([]);
     const [loadingData, setLoadingData] = useState(true);
 
     useEffect(() => {
@@ -161,13 +117,9 @@ const AdminPanelPage = () => {
             }
             setLoadingData(true);
             try {
-                const [docsResult, analyticsResult] = await Promise.all([
-                    loadAdminDocuments(),
-                    loadAdminDailyClearances(14),
-                ]);
+                const docsResult = await loadAdminDocuments();
                 const docs = docsResult.documents || [];
                 setDocuments(docs);
-                setSeries(analyticsResult.series || []);
 
                 const initialKey = DOC_ORDER.find((key) => docs.some((doc) => doc.doc_key === key)) || DOC_ORDER[0];
                 setSelectedDocKey(initialKey);
@@ -190,7 +142,8 @@ const AdminPanelPage = () => {
 
     const handleSave = async () => {
         if (!editorTitle.trim()) {
-            notify.error('Title is required.');
+            setSaveError('Title is required.');
+            setTimeout(() => setSaveError(null), 3000);
             return;
         }
 
@@ -207,10 +160,13 @@ const AdminPanelPage = () => {
                     : doc
             )));
 
-            notify.success('Document saved.');
+            setSaveMessage('Document saved.');
+            setTimeout(() => setSaveMessage(null), 3000);
         } catch (error) {
             console.error('Failed to save document:', error);
-            notify.error('Failed to save document.');
+            const msg = error?.message || 'Failed to save document.';
+            setSaveError(msg);
+            setTimeout(() => setSaveError(null), 5000);
         } finally {
             setSaving(false);
         }
@@ -219,7 +175,11 @@ const AdminPanelPage = () => {
     if (authLoading || loadingData) {
         return (
             <main className="flex-1 p-8 flex items-center justify-center pt-20 lg:pt-8">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary" />
+                <div className="w-full max-w-4xl">
+                    <div className="h-8 skeleton mb-4 rounded" />
+                    <div className="h-6 skeleton mb-2 rounded" />
+                    <div className="h-44 skeleton rounded" />
+                </div>
             </main>
         );
     }
@@ -244,9 +204,15 @@ const AdminPanelPage = () => {
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-6 pt-20 lg:pt-8">
             <header className="bg-surface-dark border border-border-dark rounded-lg p-5 md:p-6 shadow-sm">
                 <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Admin Workspace</p>
-                <h1 className="mt-2 font-display text-3xl font-bold text-white uppercase tracking-wide">Content & Analytics</h1>
-                <p className="mt-2 text-sm text-zinc-400">Manage markdown documents and monitor daily clearance activity.</p>
+                <h1 className="mt-2 font-display text-3xl font-bold text-white uppercase tracking-wide">Document Editor</h1>
             </header>
+
+            {saveMessage && (
+                <div className="rounded-md bg-green-600/20 border border-green-700 px-4 py-2 text-sm text-green-200">{saveMessage}</div>
+            )}
+            {saveError && (
+                <div className="rounded-md bg-red-600/20 border border-red-700 px-4 py-2 text-sm text-red-300">{saveError}</div>
+            )}
 
             <DocumentsPanel
                 documents={documents}
@@ -259,8 +225,6 @@ const AdminPanelPage = () => {
                 saving={saving}
                 onSave={handleSave}
             />
-
-            <ChartPanel series={series} loading={loadingData} />
         </main>
     );
 };

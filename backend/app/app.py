@@ -35,6 +35,10 @@ app.add_url_rule('/api/admin/documents', 'load_admin_documents', auth.require_ad
 app.add_url_rule('/api/admin/documents/<doc_key>', 'save_admin_document', auth.require_admin(api.save_admin_document), methods=['PUT'])
 app.add_url_rule('/api/admin/clearances/daily', 'load_admin_clearances_daily', auth.require_admin(api.load_admin_clearances_daily))
 app.add_url_rule('/api/admin/user-growth', 'load_admin_user_growth', auth.require_admin(api.load_admin_user_growth))
+app.add_url_rule('/api/admin/analytics/clearances-per-day', 'analytics_clearances_per_day', auth.require_admin(api.analytics_clearances_per_day))
+app.add_url_rule('/api/admin/analytics/clearances-last-7-days', 'analytics_clearances_last_7', auth.require_admin(lambda: api.analytics_clearances_last_n(7)))
+app.add_url_rule('/api/admin/analytics/clearances-last-30-days', 'analytics_clearances_last_30', auth.require_admin(lambda: api.analytics_clearances_last_n(30)))
+app.add_url_rule('/api/admin/analytics/user-growth', 'analytics_user_growth', auth.require_admin(api.load_admin_user_growth))
 
 @app.errorhandler(404)
 def not_found(e):

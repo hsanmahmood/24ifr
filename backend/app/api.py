@@ -222,8 +222,9 @@ def load_admin_clearances_daily():
         resp = supabase.rpc('admin_clearances_daily', {'p_days': days}).execute()
         if resp.error:
             current_app.logger.warning(f"Failed to fetch admin_clearances_daily RPC: {resp.error}")
-            return jsonify({"series": []})
-        return jsonify({"series": resp.data or []})
+            return jsonify([])
+        # Return array of {date, count}
+        return jsonify(resp.data or [])
     except Exception as e:
         current_app.logger.warning(f"Exception fetching admin daily clearances: {e}", exc_info=True)
         return jsonify({"series": []})
@@ -235,11 +236,61 @@ def load_admin_user_growth():
         resp = supabase.rpc('admin_user_growth', {'p_days': days}).execute()
         if resp.error:
             current_app.logger.warning(f"Failed to fetch admin_user_growth RPC: {resp.error}")
-            return jsonify({"series": []})
-        return jsonify({"series": resp.data or []})
+            return jsonify([])
+        data = resp.data or []
+        # Ensure cumulative totals and ascending date order
+        try:
+            sorted_data = sorted(data, key=lambda x: x.get('date'))
+            cum = 0
+            out = []
+            for row in sorted_data:
+                cnt = int(row.get('count') or 0)
+                cum += cnt
+                out.append({
+                    'date': row.get('date'),
+                    'count': cum,
+                })
+            return jsonify(out)
+        except Exception:
+            return jsonify(data)
     except Exception as e:
         current_app.logger.warning(f"Exception fetching admin user growth: {e}", exc_info=True)
-        return jsonify({"series": []})
+        return jsonify([])
+
+
+def analytics_clearances_per_day():
+    try:
+        resp = supabase.rpc('admin_clearances_per_day').execute()
+        if resp.error:
+            current_app.logger.warning(f"Failed to fetch admin_clearances_per_day RPC: {resp.error}")
+            return jsonify([])
+        return jsonify(resp.data or [])
+    except Exception as e:
+        current_app.logger.warning(f"Exception fetching admin clearances per day: {e}", exc_info=True)
+        return jsonify([])
+
+
+def analytics_clearances_last_n(days):
+    try:
+        resp = supabase.rpc('admin_clearances_daily', {'p_days': days}).execute()
+        if resp.error:
+            current_app.logger.warning(f"Failed to fetch admin_clearances_daily RPC for days={days}: {resp.error}")
+            return jsonify([])
+        data = resp.data or []
+        # Build a date->count map from returned rows
+        mapping = {row.get('date'): int(row.get('count') or 0) for row in data}
+        # Generate last `days` dates ending today
+        from datetime import date, timedelta
+        today = date.today()
+        out = []
+        for i in range(days - 1, -1, -1):
+            d = today - timedelta(days=i)
+            key = d.isoformat()
+            out.append({'date': key, 'count': mapping.get(key, 0)})
+        return jsonify(out)
+    except Exception as e:
+        current_app.logger.warning(f"Exception fetching admin clearances last {days} days: {e}", exc_info=True)
+        return jsonify([])
 
 
 def save_admin_document(doc_key):
