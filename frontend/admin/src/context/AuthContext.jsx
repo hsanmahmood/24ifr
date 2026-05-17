@@ -5,7 +5,7 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
-    const [isAuthenticated, setIsAuthenticated] = useState(true); // TEMP: Allow access without auth
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -15,10 +15,14 @@ export const AuthProvider = ({ children }) => {
                 if (data.authenticated) {
                     setUser(data.user);
                     setIsAuthenticated(true);
+                } else {
+                    setUser(null);
+                    setIsAuthenticated(false);
                 }
             } catch (error) {
                 console.error("Failed to check auth status:", error);
-                // TEMP: Don't fail on auth check errors
+                setUser(null);
+                setIsAuthenticated(false);
             } finally {
                 setLoading(false);
             }
