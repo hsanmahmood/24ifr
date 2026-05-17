@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.hasanmahmood.org';
+
 const Sidebar = () => {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -102,7 +104,7 @@ const Sidebar = () => {
                             </div>
                         ) : (
                             <a
-                                href="https://api.hasanmahmood.org/auth/discord"
+                                href={`${API_BASE_URL}/auth/discord`}
                                 className="flex w-full items-center justify-center gap-2 rounded-[6px] bg-[#f5c518] py-4 text-sm font-semibold text-black transition-[150ms] ease-out hover:brightness-95"
                             >
                                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -177,8 +179,8 @@ const Sidebar = () => {
                             </button>
                         </>
                     ) : (
-                        <a
-                            href="https://api.hasanmahmood.org/auth/discord"
+                            <a
+                                href={`${API_BASE_URL}/auth/discord`}
                             className={`flex w-full items-center justify-center gap-2 rounded-[6px] bg-[#f5c518] px-4 py-3 text-sm font-semibold text-black transition-[150ms] ease-out hover:brightness-95 ${isCollapsed ? 'px-0' : ''}`}
                             title="Login with Discord"
                         >

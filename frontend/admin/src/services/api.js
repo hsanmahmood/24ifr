@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://api.hasanmahmood.org';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.hasanmahmood.org';
 const USER_SETTINGS_KEY = 'atc24_user_settings';
 
 const handleResponse = async (response) => {
