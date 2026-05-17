@@ -59,7 +59,8 @@ const Sidebar = () => {
     };
 
     const navItems = [
-        { to: '/', icon: 'dashboard', label: 'Document editor', end: true },
+        { to: '/', icon: 'home', label: 'Document editor', end: true },
+        { to: '/analytics', icon: 'leaderboard', label: 'Analytics' },
     ];
 
     const NavItems = () => (

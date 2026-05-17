@@ -34,6 +34,7 @@ app.add_url_rule('/api/clearance/generate', 'clearance_generation_guide', api.cl
 app.add_url_rule('/api/admin/documents', 'load_admin_documents', auth.require_admin(api.load_admin_documents))
 app.add_url_rule('/api/admin/documents/<doc_key>', 'save_admin_document', auth.require_admin(api.save_admin_document), methods=['PUT'])
 app.add_url_rule('/api/admin/clearances/daily', 'load_admin_clearances_daily', auth.require_admin(api.load_admin_clearances_daily))
+app.add_url_rule('/api/admin/user-growth', 'load_admin_user_growth', auth.require_admin(api.load_admin_user_growth))
 
 @app.errorhandler(404)
 def not_found(e):

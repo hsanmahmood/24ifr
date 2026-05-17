@@ -100,3 +100,8 @@ export const loadAdminDailyClearances = async (days = 14) => {
     const response = await fetchWithCredentials(`${API_BASE_URL}/api/admin/clearances/daily?days=${days}`);
     return handleResponse(response);
 };
+
+export const loadAdminUserGrowth = async (days = 30) => {
+    const response = await fetchWithCredentials(`${API_BASE_URL}/api/admin/user-growth?days=${days}`);
+    return handleResponse(response);
+};

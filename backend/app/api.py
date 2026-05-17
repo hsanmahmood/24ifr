@@ -229,6 +229,19 @@ def load_admin_clearances_daily():
         return jsonify({"series": []})
 
 
+def load_admin_user_growth():
+    days = int(request.args.get('days', 30))
+    try:
+        resp = supabase.rpc('admin_user_growth', {'p_days': days}).execute()
+        if resp.error:
+            current_app.logger.warning(f"Failed to fetch admin_user_growth RPC: {resp.error}")
+            return jsonify({"series": []})
+        return jsonify({"series": resp.data or []})
+    except Exception as e:
+        current_app.logger.warning(f"Exception fetching admin user growth: {e}", exc_info=True)
+        return jsonify({"series": []})
+
+
 def save_admin_document(doc_key):
     """Upsert a document identified by `doc_key`.
     Expects JSON payload with at least `title` and `content_md`.
