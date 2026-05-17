@@ -34,9 +34,17 @@ function App() {
 
   useEffect(() => {
     const checkDocs = async () => {
+      // Fetch all documents from backend
       const docs = await loadPublicDocuments();
       setPublicDocs(docs);
 
+      // Check if legal was dismissed before
+      const legalDismissed = window.localStorage.getItem(LEGAL_POPUP_STORAGE_KEY) === 'true';
+      if (!legalDismissed) {
+        setIsLegalPopupOpen(true);
+      }
+
+      // Check if changelog was updated
       const changelog = docs.find(d => d.doc_key === 'changelog');
       if (changelog) {
         const keyUpdated = '24ifr_changelog_updated_at_v1';
