@@ -207,7 +207,7 @@ def load_admin_documents():
         if resp.error:
             current_app.logger.warning(f"Failed to fetch admin_documents: {resp.error}")
             return jsonify([])
-        return jsonify(resp.data or [])
+        return jsonify({"documents": resp.data or []})
     except Exception as e:
         current_app.logger.warning(f"Exception fetching admin documents: {e}", exc_info=True)
         return jsonify([])
@@ -222,8 +222,30 @@ def load_admin_clearances_daily():
         resp = supabase.rpc('admin_clearances_daily', {'p_days': days}).execute()
         if resp.error:
             current_app.logger.warning(f"Failed to fetch admin_clearances_daily RPC: {resp.error}")
-            return jsonify([])
-        return jsonify(resp.data or [])
+            return jsonify({"series": []})
+        return jsonify({"series": resp.data or []})
     except Exception as e:
         current_app.logger.warning(f"Exception fetching admin daily clearances: {e}", exc_info=True)
-        return jsonify([])
+        return jsonify({"series": []})
+
+
+def save_admin_document(doc_key):
+    """Upsert a document identified by `doc_key`.
+    Expects JSON payload with at least `title` and `content_md`.
+    """
+    payload = request.get_json(silent=True) or {}
+    title = payload.get('title') or ''
+    content_md = payload.get('content_md') or ''
+    try:
+        resp = supabase.from_('admin_documents').upsert({
+            'doc_key': doc_key,
+            'title': title,
+            'content_md': content_md,
+        }, on_conflict='doc_key').execute()
+        if resp.error:
+            current_app.logger.error(f"Failed to upsert admin document {doc_key}: {resp.error}")
+            return jsonify({"error": "Failed to save document"}), 500
+        return jsonify({"success": True, "doc": resp.data[0] if resp.data else None})
+    except Exception as e:
+        current_app.logger.error(f"Exception saving admin document {doc_key}: {e}", exc_info=True)
+        return jsonify({"error": "Failed to save document"}), 500

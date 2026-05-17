@@ -226,14 +226,12 @@ const AdminPanelPage = () => {
 
     if (!user) {
         return (
-            <main className="flex-1 p-8 flex flex-col items-center justify-center text-center space-y-6 pt-20 lg:pt-8">
-                <div className="bg-surface-dark border border-border-dark p-8 rounded-lg max-w-md w-full shadow-lg">
-                    <div className="text-6xl text-zinc-600 mb-4">⚙️</div>
-                    <h2 className="text-2xl font-display font-bold text-white mb-2">Admin Access</h2>
-                    <p className="text-zinc-400 mb-8">Please log in with Discord to access the admin panel.</p>
+            <main className="flex-1 p-8 flex items-center justify-center pt-20 lg:pt-8">
+                <div className="flex flex-col items-center gap-6">
+                    <img src="/logo.png" alt="24IFR" className="h-20 w-auto" />
                     <button
                         onClick={loginWithDiscord}
-                        className="w-full bg-primary hover:bg-primary-dim text-black font-bold uppercase tracking-widest py-3 px-4 rounded transition-all text-sm"
+                        className="w-64 bg-primary hover:bg-primary-dim text-black font-bold py-3 px-4 rounded transition-all text-sm"
                     >
                         Login with Discord
                     </button>
