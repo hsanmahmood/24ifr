@@ -20,6 +20,9 @@ class Config:
     DISCORD_AUTH_BASE_URL = f'{DISCORD_API_BASE_URL}/oauth2/authorize'
     DISCORD_TOKEN_URL = f'{DISCORD_API_BASE_URL}/oauth2/token'
 
+    # Comma-separated Discord user IDs that should be treated as admins in the app
+    ADMIN_DISCORD_IDS = os.environ.get('ADMIN_DISCORD_IDS', '')
+
     FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://24ifr.hasanmahmood.org")
 
     RELAY_URL = os.environ.get('RELAY_URL', 'https://ws.awdevsoftware.org')

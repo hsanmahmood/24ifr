@@ -3,6 +3,7 @@ from flask import session, redirect, request, jsonify, current_app
 import json
 from requests_oauthlib import OAuth2Session
 from postgrest import APIError
+from urllib.parse import urlsplit, urlunsplit
 
 from .config import Config
 from .database import supabase
@@ -12,6 +13,16 @@ def require_auth(f):
     def decorated_function(*args, **kwargs):
         if 'user' not in session:
             return jsonify({"error": "Authentication required"}), 401
+        return f(*args, **kwargs)
+    return decorated_function
+
+def require_admin(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user' not in session:
+            return jsonify({"error": "Authentication required"}), 401
+        if not session.get('user', {}).get('is_admin'):
+            return jsonify({"error": "Admin privileges required"}), 403
         return f(*args, **kwargs)
     return decorated_function
 
@@ -35,26 +46,36 @@ def discord_callback():
     # Debugging: log the incoming request URL and forwarded proto header
     current_app.logger.info(f"Discord callback hit: request.url={request.url} X-Forwarded-Proto={request.headers.get('X-Forwarded-Proto')} CF-Visitor={request.headers.get('CF-Visitor')}")
 
-    # Compatibility: some proxies (Cloudflare Tunnel) set `CF-Visitor: {"scheme":"https"}`
-    # or may omit X-Forwarded-Proto. If we can detect the external scheme as HTTPS,
-    # ensure the WSGI url scheme is set to 'https' so oauthlib accepts the redirect.
+    # Resolve external scheme: prefer X-Forwarded-Proto, fall back to CF-Visitor JSON,
+    # and if missing default to 'https' (app sits behind Cloudflare in production).
     try:
         proto = request.headers.get('X-Forwarded-Proto')
-        if not proto:
+        if proto:
+            proto = proto.split(',')[0].strip()
+        else:
             cf_visitor = request.headers.get('CF-Visitor')
             if cf_visitor:
                 parsed = json.loads(cf_visitor)
                 proto = parsed.get('scheme')
-        if proto and proto.lower() == 'https':
-            request.environ['wsgi.url_scheme'] = 'https'
-            current_app.logger.info('Set wsgi.url_scheme to https based on proxy headers')
+        if not proto:
+            proto = 'https'
     except Exception:
         current_app.logger.debug('Could not parse proxy proto headers', exc_info=True)
+        proto = 'https'
+
+    # Reconstruct the authorization_response URL with the resolved scheme. Do NOT
+    # mutate request.environ and do NOT pass the raw request.url to oauthlib.
+    try:
+        parsed = urlsplit(request.url)
+        rewritten = urlunsplit((proto, parsed.netloc, parsed.path, parsed.query, parsed.fragment))
+    except Exception:
+        # Fallback to using request.url if parsing fails (will likely error in oauthlib)
+        rewritten = request.url
 
     discord_session = OAuth2Session(Config.DISCORD_CLIENT_ID, state=session.get('oauth2_state'), redirect_uri=Config.DISCORD_REDIRECT_URI)
 
     try:
-        token = discord_session.fetch_token(Config.DISCORD_TOKEN_URL, client_secret=Config.DISCORD_CLIENT_SECRET, authorization_response=request.url)
+        token = discord_session.fetch_token(Config.DISCORD_TOKEN_URL, client_secret=Config.DISCORD_CLIENT_SECRET, authorization_response=rewritten)
         user_json = discord_session.get(Config.DISCORD_API_BASE_URL + '/users/@me').json()
     except Exception as e:
         current_app.logger.error(f"Discord OAuth token fetch/user fetch error: {e}", exc_info=True)
@@ -75,11 +96,16 @@ def discord_callback():
         if not db_user:
             raise Exception("Failed to retrieve user from DB after upsert via RPC.")
 
+        # Determine admin status from configured ADMIN_DISCORD_IDS (comma-separated)
+        admin_ids_raw = getattr(Config, 'ADMIN_DISCORD_IDS', '') or ''
+        admin_ids = [s.strip() for s in admin_ids_raw.split(',') if s.strip()]
+
         session['user'] = {
             'id': db_user['id'],
             'discord_id': db_user['out_discord_id'],
             'username': db_user['username'],
-            'avatar': db_user['avatar']
+            'avatar': db_user['avatar'],
+            'is_admin': str(user_json.get('id')) in admin_ids
         }
         session.permanent = True
     except APIError as e:
