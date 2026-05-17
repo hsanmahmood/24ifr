@@ -31,6 +31,9 @@ def discord_callback():
     if request.values.get('error'):
         return redirect(f"{auth_origin}/?error={request.values['error']}")
 
+    # Debugging: log the incoming request URL and forwarded proto header
+    current_app.logger.info(f"Discord callback hit: request.url={request.url} X-Forwarded-Proto={request.headers.get('X-Forwarded-Proto')}")
+
     discord_session = OAuth2Session(Config.DISCORD_CLIENT_ID, state=session.get('oauth2_state'), redirect_uri=Config.DISCORD_REDIRECT_URI)
 
     try:
