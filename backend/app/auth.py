@@ -1,5 +1,6 @@
 from functools import wraps
 from flask import session, redirect, request, jsonify, current_app
+import json
 from requests_oauthlib import OAuth2Session
 from postgrest import APIError
 
@@ -32,7 +33,23 @@ def discord_callback():
         return redirect(f"{auth_origin}/?error={request.values['error']}")
 
     # Debugging: log the incoming request URL and forwarded proto header
-    current_app.logger.info(f"Discord callback hit: request.url={request.url} X-Forwarded-Proto={request.headers.get('X-Forwarded-Proto')}")
+    current_app.logger.info(f"Discord callback hit: request.url={request.url} X-Forwarded-Proto={request.headers.get('X-Forwarded-Proto')} CF-Visitor={request.headers.get('CF-Visitor')}")
+
+    # Compatibility: some proxies (Cloudflare Tunnel) set `CF-Visitor: {"scheme":"https"}`
+    # or may omit X-Forwarded-Proto. If we can detect the external scheme as HTTPS,
+    # ensure the WSGI url scheme is set to 'https' so oauthlib accepts the redirect.
+    try:
+        proto = request.headers.get('X-Forwarded-Proto')
+        if not proto:
+            cf_visitor = request.headers.get('CF-Visitor')
+            if cf_visitor:
+                parsed = json.loads(cf_visitor)
+                proto = parsed.get('scheme')
+        if proto and proto.lower() == 'https':
+            request.environ['wsgi.url_scheme'] = 'https'
+            current_app.logger.info('Set wsgi.url_scheme to https based on proxy headers')
+    except Exception:
+        current_app.logger.debug('Could not parse proxy proto headers', exc_info=True)
 
     discord_session = OAuth2Session(Config.DISCORD_CLIENT_ID, state=session.get('oauth2_state'), redirect_uri=Config.DISCORD_REDIRECT_URI)
 
