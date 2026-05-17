@@ -203,10 +203,10 @@ def load_admin_documents():
     Attempts to read from `admin_documents` table; falls back to empty list on error.
     """
     try:
-        resp = supabase.from_('admin_documents').select('*').execute()
-        if resp.error:
-            current_app.logger.warning(f"Failed to fetch admin_documents: {resp.error}")
-            return jsonify([])
+        resp = supabase.from_('site_documents').select('*').execute()
+        if getattr(resp, 'error', None):
+            current_app.logger.warning(f"Failed to fetch site_documents: {resp.error}")
+            return jsonify({"documents": []})
         return jsonify({"documents": resp.data or []})
     except Exception as e:
         current_app.logger.warning(f"Exception fetching admin documents: {e}", exc_info=True)
@@ -218,41 +218,68 @@ def load_admin_clearances_daily():
     """
     days = int(request.args.get('days', 14))
     try:
-        # If there's a RPC or view for this, call it; otherwise return empty list.
-        resp = supabase.rpc('admin_clearances_daily', {'p_days': days}).execute()
-        if resp.error:
-            current_app.logger.warning(f"Failed to fetch admin_clearances_daily RPC: {resp.error}")
+        # Query clearance_generations table for created_at timestamps
+        from datetime import date, timedelta, datetime
+        since = (date.today() - timedelta(days=days - 1)).isoformat()
+        resp = supabase.from_('clearance_generations').select('created_at').gte('created_at', since).execute()
+        if getattr(resp, 'error', None):
+            current_app.logger.warning(f"Failed to fetch clearance_generations: {resp.error}")
             return jsonify([])
-        # Return array of {date, count}
-        return jsonify(resp.data or [])
+        rows = resp.data or []
+        counts = {}
+        for r in rows:
+            # created_at may be a datetime string
+            ts = r.get('created_at')
+            try:
+                d = ts[:10]
+            except Exception:
+                d = None
+            if not d:
+                continue
+            counts[d] = counts.get(d, 0) + 1
+        out = []
+        today = date.today()
+        for i in range(days - 1, -1, -1):
+            d = (today - timedelta(days=i)).isoformat()
+            out.append({'date': d, 'count': counts.get(d, 0)})
+        return jsonify(out)
     except Exception as e:
         current_app.logger.warning(f"Exception fetching admin daily clearances: {e}", exc_info=True)
-        return jsonify({"series": []})
+        return jsonify([])
 
 
 def load_admin_user_growth():
     days = int(request.args.get('days', 30))
     try:
-        resp = supabase.rpc('admin_user_growth', {'p_days': days}).execute()
-        if resp.error:
-            current_app.logger.warning(f"Failed to fetch admin_user_growth RPC: {resp.error}")
-            return jsonify([])
-        data = resp.data or []
-        # Ensure cumulative totals and ascending date order
+        # Try RPC get_admin_users first, fall back to users table
         try:
-            sorted_data = sorted(data, key=lambda x: x.get('date'))
-            cum = 0
-            out = []
-            for row in sorted_data:
-                cnt = int(row.get('count') or 0)
-                cum += cnt
-                out.append({
-                    'date': row.get('date'),
-                    'count': cum,
-                })
-            return jsonify(out)
+            resp = supabase.rpc('get_admin_users').execute()
+            rows = resp.data or []
         except Exception:
-            return jsonify(data)
+            # Fallback to users table
+            from datetime import date, timedelta
+            since = (date.today() - timedelta(days=days - 1)).isoformat()
+            r2 = supabase.from_('users').select('created_at').gte('created_at', since).execute()
+            rows = r2.data or []
+
+        # Build counts per day, then cumulative
+        from datetime import date, timedelta
+        counts = {}
+        for r in rows:
+            ts = r.get('created_at') or r.get('date')
+            if not ts:
+                continue
+            d = ts[:10]
+            counts[d] = counts.get(d, 0) + 1
+
+        out = []
+        today = date.today()
+        cum = 0
+        for i in range(days - 1, -1, -1):
+            d = (today - timedelta(days=i)).isoformat()
+            cum += counts.get(d, 0)
+            out.append({'date': d, 'count': cum})
+        return jsonify(out)
     except Exception as e:
         current_app.logger.warning(f"Exception fetching admin user growth: {e}", exc_info=True)
         return jsonify([])
@@ -260,11 +287,21 @@ def load_admin_user_growth():
 
 def analytics_clearances_per_day():
     try:
-        resp = supabase.rpc('admin_clearances_per_day').execute()
-        if resp.error:
-            current_app.logger.warning(f"Failed to fetch admin_clearances_per_day RPC: {resp.error}")
+        # Query all clearance_generations and aggregate by date
+        resp = supabase.from_('clearance_generations').select('created_at').execute()
+        if getattr(resp, 'error', None):
+            current_app.logger.warning(f"Failed to fetch clearance_generations: {resp.error}")
             return jsonify([])
-        return jsonify(resp.data or [])
+        rows = resp.data or []
+        counts = {}
+        for r in rows:
+            ts = r.get('created_at')
+            if not ts:
+                continue
+            d = ts[:10]
+            counts[d] = counts.get(d, 0) + 1
+        out = [{'date': k, 'count': v} for k, v in sorted(counts.items())]
+        return jsonify(out)
     except Exception as e:
         current_app.logger.warning(f"Exception fetching admin clearances per day: {e}", exc_info=True)
         return jsonify([])
@@ -272,21 +309,25 @@ def analytics_clearances_per_day():
 
 def analytics_clearances_last_n(days):
     try:
-        resp = supabase.rpc('admin_clearances_daily', {'p_days': days}).execute()
-        if resp.error:
-            current_app.logger.warning(f"Failed to fetch admin_clearances_daily RPC for days={days}: {resp.error}")
-            return jsonify([])
-        data = resp.data or []
-        # Build a date->count map from returned rows
-        mapping = {row.get('date'): int(row.get('count') or 0) for row in data}
-        # Generate last `days` dates ending today
         from datetime import date, timedelta
+        since = (date.today() - timedelta(days=days - 1)).isoformat()
+        resp = supabase.from_('clearance_generations').select('created_at').gte('created_at', since).execute()
+        if getattr(resp, 'error', None):
+            current_app.logger.warning(f"Failed to fetch clearance_generations for last {days} days: {resp.error}")
+            return jsonify([])
+        rows = resp.data or []
+        mapping = {}
+        for r in rows:
+            ts = r.get('created_at')
+            if not ts:
+                continue
+            d = ts[:10]
+            mapping[d] = mapping.get(d, 0) + 1
         today = date.today()
         out = []
         for i in range(days - 1, -1, -1):
-            d = today - timedelta(days=i)
-            key = d.isoformat()
-            out.append({'date': key, 'count': mapping.get(key, 0)})
+            d = (today - timedelta(days=i)).isoformat()
+            out.append({'date': d, 'count': mapping.get(d, 0)})
         return jsonify(out)
     except Exception as e:
         current_app.logger.warning(f"Exception fetching admin clearances last {days} days: {e}", exc_info=True)
@@ -301,15 +342,15 @@ def save_admin_document(doc_key):
     title = payload.get('title') or ''
     content_md = payload.get('content_md') or ''
     try:
-        resp = supabase.from_('admin_documents').upsert({
+        resp = supabase.from_('site_documents').upsert({
             'doc_key': doc_key,
             'title': title,
             'content_md': content_md,
         }, on_conflict='doc_key').execute()
-        if resp.error:
-            current_app.logger.error(f"Failed to upsert admin document {doc_key}: {resp.error}")
-            return jsonify({"error": "Failed to save document"}), 500
-        return jsonify({"success": True, "doc": resp.data[0] if resp.data else None})
+        if getattr(resp, 'error', None):
+            current_app.logger.error(f"Failed to upsert site_documents {doc_key}: {resp.error}")
+            return jsonify({"error": "Failed to save document", "detail": str(resp.error)}), 500
+        return jsonify({"success": True}), 200
     except Exception as e:
-        current_app.logger.error(f"Exception saving admin document {doc_key}: {e}", exc_info=True)
-        return jsonify({"error": "Failed to save document"}), 500
+        current_app.logger.error(f"Exception saving site_documents {doc_key}: {e}", exc_info=True)
+        return jsonify({"error": "Failed to save document", "detail": str(e)}), 500

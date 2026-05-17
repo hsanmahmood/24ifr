@@ -32,13 +32,16 @@ class FakeSupabase:
         self._daily = daily or []
         self._growth = growth or []
     def from_(self, table):
-        if table == 'admin_documents':
+        if table == 'site_documents':
             return FakeFrom(table, self._docs)
+        if table == 'clearance_generations':
+            return FakeFrom(table, self._daily)
+        if table == 'users':
+            # emulate users table returning created_at rows
+            return FakeFrom(table, self._growth)
         return FakeFrom(table, [])
     def rpc(self, name, params=None):
-        if name == 'admin_clearances_daily':
-            return FakeRPC(self._daily)
-        if name == 'admin_user_growth':
+        if name == 'get_admin_users':
             return FakeRPC(self._growth)
         return FakeRPC([])
 

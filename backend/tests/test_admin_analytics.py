@@ -13,25 +13,51 @@ class FakeRPC:
     def execute(self):
         return FakeResp(self.ret, None)
 
+class FakeFrom:
+    def __init__(self, table, ret):
+        self.table = table
+        self.ret = ret
+        self._gte_field = None
+        self._gte_value = None
+    def select(self, *args, **kwargs):
+        return self
+    def gte(self, field, val):
+        self._gte_field = field
+        self._gte_value = val
+        return self
+    def execute(self):
+        return FakeResp(self.ret, None)
+
 class FakeSupabase:
     def __init__(self, per_day=None, last7=None, last30=None, growth=None):
+        # per_day/last7/last30 are lists of {'date':..., 'count':...}
+        # convert them to created_at rows for clearance_generations queries
         self._per_day = per_day or []
         self._last7 = last7 or []
         self._last30 = last30 or []
         self._growth = growth or []
     def rpc(self, name, params=None):
-        if name == 'admin_clearances_per_day':
-            return FakeRPC(self._per_day)
-        if name == 'admin_clearances_daily':
-            days = (params or {}).get('p_days')
-            if days == 7:
-                return FakeRPC(self._last7)
-            if days == 30:
-                return FakeRPC(self._last30)
-            return FakeRPC([])
-        if name == 'admin_user_growth':
-            return FakeRPC(self._growth)
+        if name == 'get_admin_users':
+            # convert growth rows to created_at format
+            rows = []
+            for r in self._growth:
+                rows.append({'created_at': r.get('date')})
+            return FakeRPC(rows)
         return FakeRPC([])
+    def from_(self, table):
+        if table == 'clearance_generations':
+            # choose an appropriate dataset depending on what's expected in the tests
+            # use _per_day as the base for per-day queries
+            rows = []
+            for r in self._per_day:
+                rows.append({'created_at': r.get('date')})
+            return FakeFrom(table, rows)
+        if table == 'users':
+            rows = []
+            for r in self._growth:
+                rows.append({'created_at': r.get('date')})
+            return FakeFrom(table, rows)
+        return FakeFrom(table, [])
 
 @pytest.fixture
 def client(monkeypatch):
