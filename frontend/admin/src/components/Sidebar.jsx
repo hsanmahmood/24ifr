@@ -59,7 +59,7 @@ const Sidebar = () => {
     };
 
     const navItems = [
-        { to: '/', icon: 'dashboard', label: 'Admin Panel', end: true },
+        { to: '/', icon: 'dashboard', label: 'Document editor', end: true },
     ];
 
     const NavItems = () => (
