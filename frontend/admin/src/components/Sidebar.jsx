@@ -98,7 +98,9 @@ const Sidebar = () => {
                                     onClick={handleLogout}
                                     className="flex w-full items-center justify-center gap-2 rounded-[6px] bg-[#f5c518] py-4 text-sm font-semibold text-black transition-[150ms] ease-out hover:brightness-95"
                                 >
-                                    <span className="material-symbols-outlined text-xl">logout</span>
+                                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                        <path d="M16 13v-2H7V8l-5 4 5 4v-3zM20 3h-8v2h8v14h-8v2h8a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z" />
+                                    </svg>
                                     <span>Logout</span>
                                 </button>
                             </div>
@@ -174,7 +176,9 @@ const Sidebar = () => {
                                 className={`flex w-full items-center justify-center gap-2 rounded-[6px] bg-[#f5c518] px-4 py-3 text-sm font-semibold text-black transition-[150ms] ease-out hover:brightness-95 ${isCollapsed ? 'px-0' : ''}`}
                                 title="Logout"
                             >
-                                <span className="material-symbols-outlined text-xl">logout</span>
+                                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                    <path d="M16 13v-2H7V8l-5 4 5 4v-3zM20 3h-8v2h8v14h-8v2h8a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z" />
+                                </svg>
                                 <span className={`transition-all duration-150 ${isCollapsed ? 'hidden w-0' : 'block w-auto'}`}>Logout</span>
                             </button>
                         </>

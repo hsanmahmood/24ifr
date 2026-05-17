@@ -197,3 +197,33 @@ def search_flight_plan_route():
         return jsonify({"error": "Flight plan not found"}), 404
 
     return jsonify(flight_plan)
+
+def load_admin_documents():
+    """Return admin-editable documents (changelog, support, credits).
+    Attempts to read from `admin_documents` table; falls back to empty list on error.
+    """
+    try:
+        resp = supabase.from_('admin_documents').select('*').execute()
+        if resp.error:
+            current_app.logger.warning(f"Failed to fetch admin_documents: {resp.error}")
+            return jsonify([])
+        return jsonify(resp.data or [])
+    except Exception as e:
+        current_app.logger.warning(f"Exception fetching admin documents: {e}", exc_info=True)
+        return jsonify([])
+
+def load_admin_clearances_daily():
+    """Return daily clearance counts for admin dashboard. Accepts ?days=14
+    Falls back to empty list if not available.
+    """
+    days = int(request.args.get('days', 14))
+    try:
+        # If there's a RPC or view for this, call it; otherwise return empty list.
+        resp = supabase.rpc('admin_clearances_daily', {'p_days': days}).execute()
+        if resp.error:
+            current_app.logger.warning(f"Failed to fetch admin_clearances_daily RPC: {resp.error}")
+            return jsonify([])
+        return jsonify(resp.data or [])
+    except Exception as e:
+        current_app.logger.warning(f"Exception fetching admin daily clearances: {e}", exc_info=True)
+        return jsonify([])

@@ -30,6 +30,10 @@ app.add_url_rule('/api/user/clearances', 'get_user_clearances', api.get_user_cle
 app.add_url_rule('/api/clearance/generate', 'generate_clearance', api.generate_clearance, methods=['POST'])
 app.add_url_rule('/api/clearance/generate', 'clearance_generation_guide', api.clearance_generation_guide, methods=['GET'])
 
+# Admin endpoints used by the admin frontend
+app.add_url_rule('/api/admin/documents', 'load_admin_documents', api.load_admin_documents)
+app.add_url_rule('/api/admin/clearances/daily', 'load_admin_clearances_daily', api.load_admin_clearances_daily)
+
 @app.errorhandler(404)
 def not_found(e):
     return jsonify(error='Not found'), 404
