@@ -85,7 +85,7 @@ const Sidebar = () => {
                         isCollapsed ? 'justify-center gap-0 px-2' : 'gap-3 px-3',
                         isActive
                             ? 'bg-[rgba(245,197,24,0.08)] text-[#ffffff] ring-1 ring-[rgba(245,197,24,0.18)]'
-                            : 'text-[#888888] hover:bg-[#111111] hover:text-[#ffffff]',
+                            : 'text-[#888888] hover:bg-card-bg hover:text-[#ffffff]',
                     ].join(' ')}
                     to={item.to}
                     end={item.end}

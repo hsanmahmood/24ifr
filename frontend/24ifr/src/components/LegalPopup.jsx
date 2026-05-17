@@ -2,17 +2,6 @@ import React from 'react';
 
 export const LEGAL_POPUP_STORAGE_KEY = '24ifr_legal_popup_dismissed_v1';
 
-const sections = [
-    {
-        title: 'Privacy',
-        body: 'We only use your account details and generated clearance activity to run the app, keep your session working, and improve the service. We do not sell personal data.',
-    },
-    {
-        title: 'Terms',
-        body: 'Use this app responsibly. Generated clearances are for simulation and training only, and you are responsible for how you use the information shown here.',
-    },
-];
-
 const LegalPopup = ({ isOpen, onClose }) => {
     if (!isOpen) {
         return null;
@@ -32,13 +21,15 @@ const LegalPopup = ({ isOpen, onClose }) => {
                         <h2 className="mt-1 text-xl font-bold text-white">Privacy & Terms</h2>
                     </div>
                 </div>
-                <div className="space-y-4 px-5 py-5 text-sm leading-6 text-zinc-300">
-                    {sections.map((section) => (
-                        <div key={section.title} className="rounded-lg border border-zinc-800 bg-[#050505] p-4">
-                            <h3 className="text-sm font-semibold uppercase tracking-wider text-white">{section.title}</h3>
-                            <p className="mt-2 text-zinc-400">{section.body}</p>
-                        </div>
-                    ))}
+                <div className="px-5 py-5 text-sm leading-7 text-zinc-300 space-y-4">
+                    <div>
+                        <h3 className="text-sm font-semibold uppercase tracking-wider text-white mb-2">Privacy</h3>
+                        <p className="text-zinc-400">We only use your account details and generated clearance activity to run the app, keep your session working, and improve the service. We do not sell personal data.</p>
+                    </div>
+                    <div>
+                        <h3 className="text-sm font-semibold uppercase tracking-wider text-white mb-2">Terms</h3>
+                        <p className="text-zinc-400">Use this app responsibly. Generated clearances are for simulation and training only, and you are responsible for how you use the information shown here.</p>
+                    </div>
                 </div>
                 <div className="flex justify-end border-t border-border-dark px-5 py-4">
                     <button

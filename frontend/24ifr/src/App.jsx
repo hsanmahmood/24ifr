@@ -33,9 +33,6 @@ function App() {
   // }, [loading, user, redirectingToLogin]);
 
   useEffect(() => {
-    const dismissed = window.localStorage.getItem(LEGAL_POPUP_STORAGE_KEY) === 'true';
-    if (!dismissed) setIsLegalPopupOpen(true);
-
     const checkDocs = async () => {
       const docs = await loadPublicDocuments();
       setPublicDocs(docs);
@@ -45,15 +42,11 @@ function App() {
         const keyUpdated = '24ifr_changelog_updated_at_v1';
         const prev = window.localStorage.getItem(keyUpdated) || '';
         const updatedAt = changelog.updated_at || '';
+        // Always show changelog if it has been updated
         if (prev !== updatedAt) {
-          window.localStorage.setItem(CHANGELOG_POPUP_STORAGE_KEY, 'false');
           window.localStorage.setItem(keyUpdated, updatedAt);
+          window.setTimeout(() => setIsChangelogPopupOpen(true), 600);
         }
-      }
-
-      const changelogDismissed = window.localStorage.getItem(CHANGELOG_POPUP_STORAGE_KEY) === 'true';
-      if (!changelogDismissed) {
-        window.setTimeout(() => setIsChangelogPopupOpen(true), 600);
       }
     };
 

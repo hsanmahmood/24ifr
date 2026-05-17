@@ -81,7 +81,7 @@ const AnalyticsPage = () => {
                 .catch((e) => { console.error(e); setErrorGrowth(String(e)); })
                 .finally(() => setLoadingGrowth(false));
         };
-        fetch();
+        fetchAll();
     }, [user, notify]);
 
     if (authLoading) return <div className="page-loading-skeleton" />;
