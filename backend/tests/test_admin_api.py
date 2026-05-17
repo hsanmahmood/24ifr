@@ -49,7 +49,12 @@ class FakeSupabase:
 def client(monkeypatch):
     # Patch supabase used by api module
     from backend.app import api
-    fake = FakeSupabase(docs=[{'doc_key':'changelog','title':'Ch','content_md':'x'}],
+    fake = FakeSupabase(docs=[
+        {'doc_key':'privacy_terms','title':'Privacy & Terms','content_md':'# Privacy\n\nWe only use your account details and generated clearance activity to run the app, keep your session working, and improve the service. We do not sell personal data.\n\n# Terms\n\nUse this app responsibly. Generated clearances are for simulation and training only, and you are responsible for how you use the information shown here.'},
+        {'doc_key':'changelog','title':'Changelog','content_md':'# Changelog\n\n- Version 1.0'},
+        {'doc_key':'credits','title':'Credits','content_md':'# Credits\n\nThanks to...'},
+        {'doc_key':'support','title':'Support','content_md':'# Support\n\nNeed help?'}
+    ],
                        daily=[{'date':'2026-05-01','count':1}],
                        growth=[{'date':'2026-05-01','count':2}])
     monkeypatch.setattr(api, 'supabase', fake)
@@ -67,6 +72,9 @@ def test_load_admin_documents(client):
     data = json.loads(resp.data)
     assert 'documents' in data
     assert isinstance(data['documents'], list)
+    assert len(data['documents']) == 4
+    doc_keys = {d['doc_key'] for d in data['documents']}
+    assert doc_keys == {'privacy_terms', 'changelog', 'credits', 'support'}
 
 def test_save_admin_document(client):
     payload = {'title':'New','content_md':'abc'}

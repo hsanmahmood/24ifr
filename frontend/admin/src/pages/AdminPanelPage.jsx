@@ -7,13 +7,13 @@ import {
     saveAdminDocument,
 } from '../services/api';
 
-const DOC_ORDER = ['privacy_terms', 'credits', 'support', 'changelog'];
+const DOC_ORDER = ['privacy_terms', 'changelog', 'credits', 'support'];
 
 const DOC_LABELS = {
     privacy_terms: 'Privacy & Terms',
+    changelog: 'Changelog',
     credits: 'Credits',
     support: 'Support',
-    changelog: 'Changelog',
 };
 
 // Analytics charts moved to separate page. Document Editor focuses on saving documents.
@@ -89,7 +89,7 @@ const DocumentsPanel = ({
             </div>
 
             <div className="mt-4 rounded-md border border-zinc-800 bg-black/20 px-3 py-2 text-xs text-zinc-500">
-                Loaded docs: {documents.length}
+                {documents.length === 0 ? 'No documents loaded' : `Loaded docs: ${documents.length}`}
             </div>
         </section>
     );
@@ -119,13 +119,21 @@ const AdminPanelPage = () => {
             try {
                 const docsResult = await loadAdminDocuments();
                 const docs = docsResult.documents || [];
-                setDocuments(docs);
-
-                const initialKey = DOC_ORDER.find((key) => docs.some((doc) => doc.doc_key === key)) || DOC_ORDER[0];
-                setSelectedDocKey(initialKey);
+                
+                // Ensure all expected documents exist with default empty content
+                const docsMap = Object.fromEntries(docs.map(d => [d.doc_key, d]));
+                const completeDocsList = DOC_ORDER.map(key => 
+                    docsMap[key] || { doc_key: key, title: DOC_LABELS[key] || key, content_md: '' }
+                );
+                
+                setDocuments(completeDocsList);
+                setSelectedDocKey(DOC_ORDER[0]);
             } catch (error) {
                 console.error('Failed to load admin data:', error);
                 notify.error('Failed to load admin data.');
+                // Set default empty documents so UI still works
+                setDocuments(DOC_ORDER.map(key => ({ doc_key: key, title: DOC_LABELS[key] || key, content_md: '' })));
+                setSelectedDocKey(DOC_ORDER[0]);
             } finally {
                 setLoadingData(false);
             }
@@ -154,11 +162,17 @@ const AdminPanelPage = () => {
                 content_md: editorContent,
             });
 
-            setDocuments((prev) => prev.map((doc) => (
-                doc.doc_key === selectedDocKey
-                    ? { ...doc, title: editorTitle, content_md: editorContent, updated_at: new Date().toISOString() }
-                    : doc
-            )));
+            setDocuments((prev) => {
+                const existing = prev.find(d => d.doc_key === selectedDocKey);
+                const updated = {
+                    ...existing,
+                    doc_key: selectedDocKey,
+                    title: editorTitle,
+                    content_md: editorContent,
+                    updated_at: new Date().toISOString()
+                };
+                return prev.map(d => d.doc_key === selectedDocKey ? updated : d);
+            });
 
             setSaveMessage('Document saved.');
             setTimeout(() => setSaveMessage(null), 3000);

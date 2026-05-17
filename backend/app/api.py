@@ -199,8 +199,8 @@ def search_flight_plan_route():
     return jsonify(flight_plan)
 
 def load_admin_documents():
-    """Return admin-editable documents (changelog, support, credits).
-    Attempts to read from `admin_documents` table; falls back to empty list on error.
+    """Return admin-editable documents (changelog, support, credits) from site_documents table.
+    Falls back to empty list on error.
     """
     try:
         resp = supabase.from_('site_documents').select('*').execute()
@@ -210,7 +210,7 @@ def load_admin_documents():
         return jsonify({"documents": resp.data or []})
     except Exception as e:
         current_app.logger.warning(f"Exception fetching admin documents: {e}", exc_info=True)
-        return jsonify([])
+        return jsonify({"documents": []})
 
 def load_admin_clearances_daily():
     """Return daily clearance counts for admin dashboard. Accepts ?days=14
