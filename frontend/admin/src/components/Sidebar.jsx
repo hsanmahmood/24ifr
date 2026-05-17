@@ -4,6 +4,44 @@ import { useAuth } from '../context/AuthContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.hasanmahmood.org';
 
+const Icon = ({ name, className = '' }) => {
+    const base = String(className || '')
+    switch (name) {
+        case 'dashboard':
+            return (
+                <svg className={`${base}`} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zM13 3v6h8V3h-8zm0 8v10h8V11h-8z" />
+                </svg>
+            )
+        case 'menu':
+            return (
+                <svg className={`${base}`} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z" />
+                </svg>
+            )
+        case 'close':
+            return (
+                <svg className={`${base}`} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M18.3 5.71L12 12l6.3 6.29-1.41 1.42L10.59 13.41 4.29 19.71 2.88 18.29 9.18 12 2.88 5.71 4.29 4.29 10.59 10.59 16.88 4.29z" />
+                </svg>
+            )
+        case 'chevron_right':
+            return (
+                <svg className={`${base}`} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M10 6l6 6-6 6V6z" />
+                </svg>
+            )
+        case 'menu_open':
+            return (
+                <svg className={`${base}`} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M4 6h16v2H4V6zm0 5h10v2H4v-2zm0 5h16v2H4v-2z" />
+                </svg>
+            )
+        default:
+            return <span className={base}>{name}</span>
+    }
+}
+
 const Sidebar = () => {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -42,9 +80,7 @@ const Sidebar = () => {
                 >
                     {({ isActive }) => (
                         <>
-                            <span className={`material-symbols-outlined text-[20px] transition-colors ${isActive ? 'text-[#f5c518]' : 'text-inherit group-hover:text-[#f5c518]'}`}>
-                                {item.icon}
-                            </span>
+                            <Icon name={item.icon} className={`text-[20px] transition-colors ${isActive ? 'text-[#f5c518]' : 'text-inherit group-hover:text-[#f5c518]'}`} />
                             <span className={`whitespace-nowrap transition-all duration-150 ${isCollapsed ? 'lg:w-0 lg:translate-x-2 lg:opacity-0' : 'opacity-100'}`}>
                                 {item.label}
                             </span>
@@ -62,10 +98,9 @@ const Sidebar = () => {
                 <button
                     onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                     className="text-zinc-400 hover:text-white transition-colors"
+                    aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
                 >
-                    <span className="material-symbols-outlined text-3xl">
-                        {isMobileMenuOpen ? 'close' : 'menu'}
-                    </span>
+                    <Icon name={isMobileMenuOpen ? 'close' : 'menu'} className="text-3xl" />
                 </button>
             </div>
 
@@ -136,10 +171,9 @@ const Sidebar = () => {
                             onClick={toggleSidebar}
                             className={`focus:outline-none transition-colors hover:text-white ${isCollapsed ? 'absolute -right-3 top-7 rounded-full border border-[#222222] bg-[#0f0f0f] p-1 text-[#888888]' : 'absolute right-3 text-[#888888]'}`}
                             title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+                            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                         >
-                            <span className="material-symbols-outlined text-xl">
-                                {isCollapsed ? 'chevron_right' : 'menu_open'}
-                            </span>
+                            <Icon name={isCollapsed ? 'chevron_right' : 'menu_open'} className="text-xl" />
                         </button>
                     </div>
 
