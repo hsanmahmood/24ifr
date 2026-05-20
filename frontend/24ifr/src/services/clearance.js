@@ -142,8 +142,8 @@ export default { generateClearanceLocal };
 export const DEFAULT_TEMPLATE = '{CALLSIGN}, {ATC_STATION}, good day. Startup approved. Information {ATIS} correct. Cleared {DESTINATION} via {ROUTE}, runway {RUNWAY}. Initial climb FT{INITIAL_ALT}. Squawk {SQUAWK}.';
 
 export const PLACEHOLDERS = [
-    '[CALLSIGN]', '[ATC_STATION]', '[ATIS]', '[DESTINATION]',
-    '[ROUTE]', '[RUNWAY]', '[INITIAL_ALT]', '[FLIGHT_LEVEL]', '[SQUAWK]'
+    '{CALLSIGN}', '{ATC_STATION}', '{ATIS}', '{DESTINATION}',
+    '{ROUTE}', '{RUNWAY}', '{INITIAL_ALT}', '{FLIGHT_LEVEL}', '{SQUAWK}'
 ];
 
 export const normalizeSettings = (s = {}) => ({
@@ -151,6 +151,9 @@ export const normalizeSettings = (s = {}) => ({
     defaultAtcStation: s.defaultAtcStation || '',
     defaultRouting: s.defaultRouting || 'As Filed',
     defaultRoutingDetails: s.defaultRoutingDetails || '',
+    defaultSidRoutingDetails: s.defaultSidRoutingDetails || '',
+    defaultDirectRoutingDetails: s.defaultDirectRoutingDetails || '',
+    defaultSettingsEnabled: s.defaultSettingsEnabled ?? false,
     uppercaseCallsign: s.uppercaseCallsign ?? true,
 });
 
@@ -165,10 +168,10 @@ export const resolveRouting = ({ flightPlan, routing, details, settings }) => {
     const s = normalizeSettings(settings);
     const mode = routing || s.defaultRouting;
     if (mode === 'As Filed') return flightPlan?.route || '';
-    if (mode === 'SID') return d ? `the ${d} departure` : 'the departure procedure';
-    if (mode === 'DIRECT') return d ? `direct ${d}` : (flightPlan?.route || 'direct');
+    if (mode === 'SID') return details ? `the ${details} departure` : 'the departure procedure';
+    if (mode === 'DIRECT') return details ? `direct ${details}` : (flightPlan?.route || 'direct');
     if (mode === 'VECTORS') return 'Radar Vectors';
-    return d || flightPlan?.route || 'as filed';
+    return details || flightPlan?.route || 'as filed';
 };
 
 export const buildClearanceText = ({ flightPlan, formSettings = {}, advancedSettings = {} }) => {
@@ -182,7 +185,7 @@ export const buildClearanceText = ({ flightPlan, formSettings = {}, advancedSett
 
     const template = settings.clearanceTemplate || DEFAULT_TEMPLATE;
     const callsign = flightPlan?.callsign ? (settings.uppercaseCallsign ? flightPlan.callsign.toUpperCase() : flightPlan.callsign) : '';
-    const station = formSettings.station || settings.defaultAtcStation || '';
+    const station = formSettings.station || (settings.defaultSettingsEnabled ? settings.defaultAtcStation : '') || '';
     const runway = formSettings.runway || '';
     const atisLetter = formSettings.atisLetter || '';
     const initialClimb = formSettings.initialClimb || '';

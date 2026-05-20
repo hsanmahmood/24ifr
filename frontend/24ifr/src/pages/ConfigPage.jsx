@@ -5,16 +5,40 @@ import { useNotification } from '../context/NotificationContext';
 import { useSettings } from '../context/SettingsContext';
 import { DEFAULT_TEMPLATE, PLACEHOLDERS, normalizeSettings } from '../services/clearance';
 
+const DEFAULT_CONFIG = normalizeSettings({
+    defaultSettingsEnabled: false,
+    defaultAtcStation: '',
+    defaultRouting: 'As Filed',
+    defaultRoutingDetails: '',
+    defaultSidRoutingDetails: '',
+    defaultDirectRoutingDetails: '',
+    uppercaseCallsign: true,
+});
+
+const escapeHtml = (value) => String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+const highlightedTemplateHtml = (template) => {
+    const safe = escapeHtml(template || '');
+    const highlighted = safe.replace(/\{[A-Z_]+\}/g, (token) => `<span class="text-primary font-semibold">${token}</span>`);
+    return { __html: highlighted || '<span class="text-zinc-600">No template yet.</span>' };
+};
+
 const ConfigPage = () => {
     const { notify } = useNotification();
     const { settings, updateSettings } = useSettings();
-    const [localSettings, setLocalSettings] = useState(settings);
+    const [localSettings, setLocalSettings] = useState(() => normalizeSettings(settings));
     const [isDirty, setIsDirty] = useState(false);
-    const [showExport, setShowExport] = useState(false);
-    const [showPreview, setShowPreview] = useState(false);
     const [availableStations, setAvailableStations] = useState([]);
-    const [defaultSettingsEnabled, setDefaultSettingsEnabled] = useState(true);
     const textareaRef = useRef(null);
+
+    useEffect(() => {
+        setLocalSettings(normalizeSettings(settings));
+    }, [settings]);
 
     useEffect(() => {
         const loadStations = async () => {
@@ -45,7 +69,7 @@ const ConfigPage = () => {
     };
 
     const handleReset = () => {
-        const defaults = normalizeSettings({});
+        const defaults = DEFAULT_CONFIG;
         setLocalSettings(defaults);
         updateSettings(defaults);
         setIsDirty(false);
@@ -82,33 +106,56 @@ const ConfigPage = () => {
                     ))}
                 </div>
                 <textarea ref={textareaRef} value={localSettings.clearanceTemplate} onChange={e => updateLocal('clearanceTemplate', e.target.value)} className="w-full h-40 bg-black/50 border border-zinc-800 text-white font-mono text-sm rounded-lg p-4 outline-none focus:border-primary mb-4 resize-none" placeholder="Enter template..." />
-                <div className="flex items-center gap-3">
+                <div className="rounded-lg border border-zinc-800 bg-black/30 p-4 font-mono text-sm leading-relaxed text-zinc-300" dangerouslySetInnerHTML={highlightedTemplateHtml(localSettings.clearanceTemplate)} />
+                <div className="mt-4 flex items-center gap-3">
                     <button onClick={handleSave} className="bg-primary hover:brightness-110 text-black font-bold uppercase tracking-widest py-2 px-6 rounded transition-all text-sm flex items-center gap-2"><span className="material-symbols-outlined text-lg">save</span> Save Template</button>
-                    <button onClick={() => setShowPreview(!showPreview)} className="bg-zinc-800 hover:bg-zinc-700 text-white font-bold uppercase tracking-widest py-2 px-6 rounded transition-all text-sm flex items-center gap-2"><span className="material-symbols-outlined text-lg">visibility</span> Preview</button>
-                    <button onClick={() => setShowExport(!showExport)} className="bg-zinc-800 hover:bg-zinc-700 text-white font-bold uppercase tracking-widest py-2 px-6 rounded transition-all text-sm flex items-center gap-2"><span className="material-symbols-outlined text-lg">download</span> Export</button>
                     {isDirty && <span className="text-amber-400 text-xs font-bold uppercase tracking-wider">Unsaved Changes</span>}
                 </div>
-                {showPreview && <div className="mt-4 p-4 bg-black/30 border border-zinc-800 rounded font-mono text-sm text-zinc-300 leading-relaxed wrap-break-word">{localSettings.clearanceTemplate}</div>}
             </div>
             <div className="bg-surface-dark border border-border-dark rounded-lg p-6 shadow-sm">
-                <div className="flex items-center justify-between mb-6">
+                <div className="mb-6">
                     <h2 className="font-display text-lg font-bold text-white uppercase tracking-wide">Default Settings</h2>
-                    <label className="flex items-center gap-2 cursor-pointer" onClick={() => setDefaultSettingsEnabled(!defaultSettingsEnabled)}>
-                        <div className={`w-10 h-6 rounded-full transition-colors ${defaultSettingsEnabled ? 'bg-primary' : 'bg-zinc-700'}`}>
-                            <div className={`w-5 h-5 rounded-full bg-white transition-transform ${defaultSettingsEnabled ? 'translate-x-4' : 'translate-x-0.5'} m-0.5`}></div>
-                        </div>
-                        <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Enable</span>
-                    </label>
-                </div>
-                <div className={`space-y-4 transition-opacity ${!defaultSettingsEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <Combobox label="Default ATC Station" options={availableStations.map(s => ({ label: `${s.label} [${s.holder}]`, value: s.value }))} value={localSettings.defaultAtcStation} onChange={v => updateLocal('defaultAtcStation', v)} placeholder="Select station" />
-                        <Combobox label="Default Routing" options={[{ label: 'As Filed', value: 'As Filed' }, { label: 'SID', value: 'SID' }, { label: 'Radar Vectors', value: 'VECTORS' }, { label: 'Direct', value: 'DIRECT' }]} value={localSettings.defaultRouting} onChange={v => updateLocal('defaultRouting', v)} placeholder="Select routing" />
+                    <div className="mt-3 flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => updateLocal('defaultSettingsEnabled', !localSettings.defaultSettingsEnabled)}
+                            className={`flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${localSettings.defaultSettingsEnabled ? 'border-primary bg-primary text-black' : 'border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-primary hover:text-primary'}`}
+                        >
+                            <span className={`h-5 w-9 rounded-full p-0.5 transition-colors ${localSettings.defaultSettingsEnabled ? 'bg-black/20' : 'bg-zinc-700'}`}>
+                                <span className={`block h-4 w-4 rounded-full bg-white transition-transform ${localSettings.defaultSettingsEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                            </span>
+                            {localSettings.defaultSettingsEnabled ? 'Enabled' : 'Disabled'}
+                        </button>
+                        <span className="text-xs text-zinc-500">Enable this to choose defaults for ATC station, routing, and call sign behavior.</span>
                     </div>
-                    <label className="flex items-center gap-3 bg-black/30 border border-zinc-800 rounded px-4 py-3">
-                        <input type="checkbox" checked={localSettings.uppercaseCallsign} onChange={e => updateLocal('uppercaseCallsign', e.target.checked)} className="h-4 w-4 accent-primary" />
-                        <span className="text-sm text-zinc-300">Uppercase callsign</span>
-                    </label>
+                </div>
+                <div className={`space-y-4 transition-opacity ${!localSettings.defaultSettingsEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+                    {localSettings.defaultSettingsEnabled ? (
+                        <>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <Combobox label="Default ATC Station" options={availableStations.map(s => ({ label: `${s.label} [${s.holder}]`, value: s.value }))} value={localSettings.defaultAtcStation} onChange={v => updateLocal('defaultAtcStation', v)} placeholder="Select station" />
+                                <Combobox label="Default Routing" options={[{ label: 'As Filed', value: 'As Filed' }, { label: 'SID', value: 'SID' }, { label: 'Radar Vectors', value: 'VECTORS' }, { label: 'Direct', value: 'DIRECT' }]} value={localSettings.defaultRouting} onChange={v => updateLocal('defaultRouting', v)} placeholder="Select routing" />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Default SID Input</label>
+                                    <input type="text" value={localSettings.defaultSidRoutingDetails} onChange={e => updateLocal('defaultSidRoutingDetails', e.target.value)} placeholder="SID name" className="w-full bg-black/50 border border-zinc-800 text-white text-sm rounded px-3 py-2.5 focus:border-primary outline-none" />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Default Direct Input</label>
+                                    <input type="text" value={localSettings.defaultDirectRoutingDetails} onChange={e => updateLocal('defaultDirectRoutingDetails', e.target.value)} placeholder="Waypoint" className="w-full bg-black/50 border border-zinc-800 text-white text-sm rounded px-3 py-2.5 focus:border-primary outline-none" />
+                                </div>
+                            </div>
+                            <label className="flex items-center gap-3 bg-black/30 border border-zinc-800 rounded px-4 py-3">
+                                <input type="checkbox" checked={localSettings.uppercaseCallsign} onChange={e => updateLocal('uppercaseCallsign', e.target.checked)} className="h-4 w-4 accent-primary" />
+                                <span className="text-sm text-zinc-300">Uppercase callsign</span>
+                            </label>
+                        </>
+                    ) : (
+                        <div className="rounded-lg border border-zinc-800 bg-black/30 px-4 py-3 text-sm text-zinc-400">
+                            Default settings are off. Turn them on to choose a default ATC station or store SID/direct defaults.
+                        </div>
+                    )}
                 </div>
                 <div className="flex items-center gap-3 mt-6">
                     <button onClick={handleSave} className="bg-primary hover:brightness-110 text-black font-bold uppercase tracking-widest py-2 px-6 rounded transition-all text-sm flex items-center gap-2"><span className="material-symbols-outlined text-lg">save</span> Save Settings</button>
