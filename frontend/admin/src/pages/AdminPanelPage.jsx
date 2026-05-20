@@ -18,6 +18,44 @@ const DOC_LABELS = {
 
 // Analytics charts moved to separate page. Document Editor focuses on saving documents.
 
+const DocumentEditorSkeleton = () => (
+    <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-6 pt-20 lg:pt-8">
+        <header className="px-1">
+            <div className="skeleton h-10 w-56 rounded" />
+        </header>
+
+        <section className="overflow-hidden rounded-lg border border-border-dark bg-surface-dark shadow-sm">
+            <div className="border-b border-border-dark p-5 md:p-6">
+                <div className="skeleton h-6 w-48 rounded" />
+                <div className="mt-4 flex flex-wrap gap-2">
+                    {Array.from({ length: 4 }).map((_, index) => (
+                        <div key={index} className="skeleton h-9 w-28 rounded-[6px]" />
+                    ))}
+                </div>
+            </div>
+
+            <div className="p-5 md:p-6">
+                <div className="space-y-4">
+                    <div>
+                        <div className="skeleton h-3 w-10 rounded" />
+                        <div className="skeleton mt-1 h-10 w-full rounded-md" />
+                    </div>
+
+                    <div>
+                        <div className="skeleton h-3 w-24 rounded" />
+                        <div className="skeleton mt-1 h-[320px] w-full rounded-md" />
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 border-t border-border-dark pt-4">
+                        <div className="skeleton h-4 w-24 rounded" />
+                        <div className="skeleton h-9 w-28 rounded-[6px]" />
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+);
+
 const DocumentsPanel = ({
     documents,
     selectedDocKey,
@@ -181,16 +219,12 @@ const AdminPanelPage = () => {
         }
     };
 
-    if (authLoading || loadingData) {
-        return (
-            <main className="flex-1 p-8 flex items-center justify-center pt-20 lg:pt-8">
-                <div className="w-full max-w-4xl">
-                    <div className="h-8 skeleton mb-4 rounded" />
-                    <div className="h-6 skeleton mb-2 rounded" />
-                    <div className="h-44 skeleton rounded" />
-                </div>
-            </main>
-        );
+    if (authLoading) {
+        return <DocumentEditorSkeleton />;
+    }
+
+    if (loadingData) {
+        return <DocumentEditorSkeleton />;
     }
 
     if (!user) {
