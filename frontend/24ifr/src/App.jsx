@@ -59,10 +59,22 @@ function App() {
       // Check if changelog was updated
       const changelog = docs.find(d => d.doc_key === 'changelog');
       if (changelog) {
-        const updatedAt = changelog.updated_at || '';
+        // Normalize updated_at to an ISO string so comparisons are consistent
+        let updatedAt = '';
+        try {
+          updatedAt = changelog.updated_at ? new Date(changelog.updated_at).toISOString() : '';
+        } catch (e) {
+          updatedAt = String(changelog.updated_at || '');
+        }
+
         const keyUpdated = CHANGELOG_POPUP_STORAGE_KEY;
         const prev = window.localStorage.getItem(keyUpdated) || '';
-        if (prev !== updatedAt) {
+        if (!prev) {
+          // First-time visitor: show changelog
+          window.localStorage.setItem(keyUpdated, updatedAt);
+          window.setTimeout(() => setIsChangelogPopupOpen(true), 600);
+        } else if (prev !== updatedAt) {
+          // Changelog changed since last seen: update and show
           window.localStorage.setItem(keyUpdated, updatedAt);
           window.setTimeout(() => setIsChangelogPopupOpen(true), 600);
         }
@@ -80,6 +92,7 @@ function App() {
     return (
       <>
         <LegalPopup isOpen={isLegalPopupOpen} onClose={() => setIsLegalPopupOpen(false)} content={publicDocs.find(d => d.doc_key === 'privacy_terms')?.content_md || ''} />
+        <ChangelogPopup isOpen={isChangelogPopupOpen} onClose={() => setIsChangelogPopupOpen(false)} content={publicDocs.find(d => d.doc_key === 'changelog')?.content_md || ''} />
         <LoginScreen onOpenLegalPopup={() => setIsLegalPopupOpen(true)} />
       </>
     );
