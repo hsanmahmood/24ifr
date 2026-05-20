@@ -5,3 +5,4 @@ supabase
 waitress
 requests
 requests-oauthlib
+Flask-Compress
