@@ -9,7 +9,7 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, onAirpor
 
     const savedSettings = loadUserSettings() || {};
 
-    const [station, setStation] = useState(() => savedSettings.defaultAtcStation || '');
+    const [station, setStation] = useState('');
     const [departureAirport, setDepartureAirport] = useState('');
     const [runway, setRunway] = useState(() => savedSettings.defaultRunway || '');
     const [atisLetter, setAtisLetter] = useState(() => savedSettings.defaultAtisLetter || '');

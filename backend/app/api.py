@@ -1,4 +1,5 @@
 from flask import jsonify, request, session, current_app
+import threading
 from .database import supabase
 from .external_api import (
     get_controllers,
@@ -14,6 +15,32 @@ from .external_api import (
 
 DEFAULT_CLEARANCE_TEMPLATE = '{CALLSIGN}, {ATC_STATION}, good day. Startup approved. Information {ATIS} correct. Cleared {DESTINATION} via {ROUTE}, runway {RUNWAY}. Initial climb FT{INITIAL_ALT}. Squawk {SQUAWK}.'
 
+# Simple in-memory endpoint cache to reduce repeated heavy queries
+_endpoint_cache = {}
+_endpoint_cache_lock = threading.Lock() if 'threading' in globals() else None
+
+def _cached_get(key, ttl=60):
+    """Return cached value for key if still valid, else None."""
+    import time
+    with (_endpoint_cache_lock or _DummyLock()):
+        entry = _endpoint_cache.get(key)
+        if entry:
+            ts, val = entry
+            if time.time() - ts < ttl:
+                return val
+    return None
+
+def _cached_set(key, value):
+    import time
+    with (_endpoint_cache_lock or _DummyLock()):
+        _endpoint_cache[key] = (time.time(), value)
+
+class _DummyLock:
+    def __enter__(self):
+        return None
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
 def health_check():
     try:
         relay = get_health()
@@ -27,13 +54,24 @@ def health_check():
 
 def fetch_controllers():
     try:
-        return jsonify(get_controllers())
+        # controllers are also cached by external_api, but cache the serialized result for short term
+        cached = _cached_get('controllers', ttl=10)
+        if cached is not None:
+            return jsonify(cached)
+        result = get_controllers()
+        _cached_set('controllers', result)
+        return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 def fetch_atis():
     try:
-        return jsonify(get_atis())
+        cached = _cached_get('atis', ttl=10)
+        if cached is not None:
+            return jsonify(cached)
+        result = get_atis()
+        _cached_set('atis', result)
+        return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -222,12 +260,18 @@ def load_admin_documents():
     """Return admin-editable documents (changelog, support, credits) from site_documents table.
     Falls back to empty list on error.
     """
+    # Cache admin documents for a short period to avoid repeated DB reads
+    cached = _cached_get('admin_documents', ttl=30)
+    if cached is not None:
+        return jsonify({"documents": cached})
     try:
         resp = supabase.from_('site_documents').select('*').execute()
         if getattr(resp, 'error', None):
             current_app.logger.warning(f"Failed to fetch site_documents: {resp.error}")
             return jsonify({"documents": []})
-        return jsonify({"documents": resp.data or []})
+        docs = resp.data or []
+        _cached_set('admin_documents', docs)
+        return jsonify({"documents": docs})
     except Exception as e:
         current_app.logger.warning(f"Exception fetching admin documents: {e}", exc_info=True)
         return jsonify({"documents": []})
@@ -237,6 +281,10 @@ def load_public_documents():
     """Return public site documents for the front-end popups.
     Falls back to empty list on error.
     """
+    # Cache public documents for longer since they change rarely
+    cached = _cached_get('public_documents', ttl=300)
+    if cached is not None:
+        return jsonify({"documents": cached})
     try:
         resp = supabase.from_('site_documents').select('*').execute()
         if getattr(resp, 'error', None):
@@ -245,6 +293,7 @@ def load_public_documents():
         documents = resp.data or []
         allowed_keys = {'privacy_terms', 'changelog', 'credits', 'support'}
         filtered = [doc for doc in documents if doc.get('doc_key') in allowed_keys]
+        _cached_set('public_documents', filtered)
         return jsonify({"documents": filtered})
     except Exception as e:
         current_app.logger.warning(f"Exception fetching public documents: {e}", exc_info=True)
@@ -396,6 +445,10 @@ def _fetch_all_rows(table_name, columns='created_at', since=None, batch_size=100
 
 def load_admin_analytics_overview():
     try:
+        # Cache analytics overview for 30s to avoid heavy repeated aggregation queries
+        cached = _cached_get('admin_analytics_overview', ttl=30)
+        if cached is not None:
+            return jsonify(cached)
         clearance_rows = _fetch_all_rows('clearance_generations', 'created_at')
         clearance_counts = _count_rows_by_date(clearance_rows)
         clearance_series = _format_daily_series(clearance_counts, cumulative=False)
@@ -449,6 +502,7 @@ def load_admin_analytics_overview():
                 'user_growth': user_growth_series,
             },
         }
+        _cached_set('admin_analytics_overview', payload)
         return jsonify(payload)
     except Exception as e:
         current_app.logger.warning(f"Exception fetching admin analytics overview: {e}", exc_info=True)
@@ -491,6 +545,9 @@ def load_admin_user_growth():
 
 def analytics_clearances_per_day():
     try:
+        cached = _cached_get('analytics_clearances_per_day', ttl=30)
+        if cached is not None:
+            return jsonify(cached)
         # Query all clearance_generations and aggregate by date
         rows = _fetch_all_rows('clearance_generations', 'created_at')
         counts = {}
@@ -501,6 +558,7 @@ def analytics_clearances_per_day():
             d = ts[:10]
             counts[d] = counts.get(d, 0) + 1
         out = [{'date': k, 'count': v} for k, v in sorted(counts.items())]
+        _cached_set('analytics_clearances_per_day', out)
         return jsonify(out)
     except Exception as e:
         current_app.logger.warning(f"Exception fetching admin clearances per day: {e}", exc_info=True)
@@ -509,6 +567,10 @@ def analytics_clearances_per_day():
 
 def analytics_clearances_last_n(days):
     try:
+        cache_key = f'analytics_clearances_last_n:{days}'
+        cached = _cached_get(cache_key, ttl=30)
+        if cached is not None:
+            return jsonify(cached)
         from datetime import date, timedelta
         since = (date.today() - timedelta(days=days - 1)).isoformat()
         rows = _fetch_all_rows('clearance_generations', 'created_at', since=since)
@@ -524,10 +586,81 @@ def analytics_clearances_last_n(days):
         for i in range(days - 1, -1, -1):
             d = (today - timedelta(days=i)).isoformat()
             out.append({'date': d, 'count': mapping.get(d, 0)})
+        _cached_set(cache_key, out)
         return jsonify(out)
     except Exception as e:
         current_app.logger.warning(f"Exception fetching admin clearances last {days} days: {e}", exc_info=True)
         return jsonify([])
+
+
+def load_admin_analytics_all():
+    """Return a single payload containing metrics and charts for admin analytics.
+    Combines overview metrics, clearances per day and user growth into one response.
+    """
+    try:
+        cached = _cached_get('admin_analytics_all', ttl=30)
+        if cached is not None:
+            return jsonify(cached)
+
+        # Fetch raw rows once to build datasets
+        clearance_rows = _fetch_all_rows('clearance_generations', 'created_at')
+        clearance_counts = _count_rows_by_date(clearance_rows)
+        clearance_series = _format_daily_series(clearance_counts, cumulative=False)
+
+        user_rows = _fetch_admin_user_rows(all_time=True)
+        user_counts = _count_rows_by_date(user_rows)
+        user_growth_series = _format_daily_series(user_counts, cumulative=True)
+
+        from datetime import date, timedelta
+
+        today_key = date.today().isoformat()
+        yesterday_key = (date.today() - timedelta(days=1)).isoformat()
+
+        total_clearances = sum(clearance_counts.values())
+        today_clearances = clearance_counts.get(today_key, 0)
+        last7_clearances = _sum_last_days(clearance_counts, 7)
+        last15_clearances = _sum_last_days(clearance_counts, 15)
+        last30_clearances = _sum_last_days(clearance_counts, 30)
+        total_users = user_growth_series[-1]['count'] if user_growth_series else 0
+
+        previous7_clearances = _sum_last_days(clearance_counts, 14) - last7_clearances if clearance_counts else 0
+        previous15_clearances = _sum_last_days(clearance_counts, 30) - last15_clearances if clearance_counts else 0
+        previous30_clearances = _sum_last_days(clearance_counts, 60) - last30_clearances if clearance_counts else 0
+        previous_today = clearance_counts.get(yesterday_key, 0)
+        previous_users = user_growth_series[-31]['count'] if len(user_growth_series) > 30 else 0
+
+        def compact_trend(current, previous):
+            value = _trend_pct(current, previous)
+            return None if value is None else round(value, 1)
+
+        payload = {
+            'metrics': {
+                'total_clearances': total_clearances,
+                'today_clearances': today_clearances,
+                'last7_clearances': last7_clearances,
+                'last15_clearances': last15_clearances,
+                'last30_clearances': last30_clearances,
+                'total_users': total_users,
+                'trends': {
+                    'total_clearances': compact_trend(last30_clearances, previous30_clearances),
+                    'today_clearances': compact_trend(today_clearances, previous_today),
+                    'last7_clearances': compact_trend(last7_clearances, previous7_clearances),
+                    'last15_clearances': compact_trend(last15_clearances, previous15_clearances),
+                    'last30_clearances': compact_trend(last30_clearances, previous30_clearances),
+                    'total_users': compact_trend(total_users, previous_users),
+                },
+            },
+            'charts': {
+                'clearances_per_day': clearance_series,
+                'user_growth': user_growth_series,
+            },
+        }
+
+        _cached_set('admin_analytics_all', payload)
+        return jsonify(payload)
+    except Exception as e:
+        current_app.logger.warning(f"Exception fetching admin analytics (all): {e}", exc_info=True)
+        return jsonify({'metrics': {}, 'charts': {'clearances_per_day': [], 'user_growth': []}})
 
 
 def track_clearance_generation():

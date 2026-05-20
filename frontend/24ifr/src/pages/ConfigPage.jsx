@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Combobox from '../components/Combobox';
-import { loadControllers } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import { useSettings } from '../context/SettingsContext';
 import { DEFAULT_TEMPLATE, PLACEHOLDERS, normalizeSettings } from '../services/clearance';
 
 const DEFAULT_CONFIG = normalizeSettings({
     defaultSettingsEnabled: false,
-    defaultAtcStation: '',
     defaultRouting: 'As Filed',
     defaultRoutingDetails: '',
     defaultSidRoutingDetails: '',
@@ -33,34 +31,14 @@ const ConfigPage = () => {
     const { settings, updateSettings } = useSettings();
     const [localSettings, setLocalSettings] = useState(() => normalizeSettings(settings));
     const [isDirty, setIsDirty] = useState(false);
-    const [availableStations, setAvailableStations] = useState([]);
+    
     const textareaRef = useRef(null);
 
     useEffect(() => {
         setLocalSettings(normalizeSettings(settings));
     }, [settings]);
 
-    useEffect(() => {
-        const loadStations = async () => {
-            try {
-                const controllers = await loadControllers();
-                const list = controllers?.data || [];
-                const active = list
-                    .map(c => ({
-                        label: c.callsign || (c.airport && c.position ? `${c.airport}_${c.position}` : ''),
-                        value: c.callsign || `${c.airport}_${c.position}`,
-                        holder: c.holder || 'Unknown',
-                        claimable: c.claimable
-                    }))
-                    .filter(c => c.value && c.claimable === false)
-                    .sort((a, b) => a.label.localeCompare(b.label));
-                setAvailableStations(active);
-            } catch (err) {
-                console.error(err);
-            }
-        };
-        loadStations();
-    }, []);
+    // Default ATC station feature removed: no station options are loaded
 
     const handleSave = () => {
         updateSettings(localSettings);
@@ -116,24 +94,17 @@ const ConfigPage = () => {
                 <div className="mb-6">
                     <h2 className="font-display text-lg font-bold text-white uppercase tracking-wide">Default Settings</h2>
                     <div className="mt-3 flex items-center gap-2">
-                        <button
-                            type="button"
-                            onClick={() => updateLocal('defaultSettingsEnabled', !localSettings.defaultSettingsEnabled)}
-                            className={`flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${localSettings.defaultSettingsEnabled ? 'border-primary bg-primary text-black' : 'border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-primary hover:text-primary'}`}
-                        >
-                            <span className={`h-5 w-9 rounded-full p-0.5 transition-colors ${localSettings.defaultSettingsEnabled ? 'bg-black/20' : 'bg-zinc-700'}`}>
-                                <span className={`block h-4 w-4 rounded-full bg-white transition-transform ${localSettings.defaultSettingsEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
-                            </span>
-                            {localSettings.defaultSettingsEnabled ? 'Enabled' : 'Disabled'}
-                        </button>
-                        <span className="text-xs text-zinc-500">Enable this to choose defaults for ATC station, routing, and call sign behavior.</span>
+                        <label className="flex items-center gap-3">
+                            <input type="checkbox" checked={localSettings.defaultSettingsEnabled} onChange={e => updateLocal('defaultSettingsEnabled', e.target.checked)} className="h-4 w-4 accent-primary" />
+                            <span className="text-sm text-zinc-300">Enable default settings</span>
+                        </label>
                     </div>
                 </div>
                 <div className={`space-y-4 transition-opacity ${!localSettings.defaultSettingsEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
                     {localSettings.defaultSettingsEnabled ? (
                         <>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                <Combobox label="Default ATC Station" options={availableStations.map(s => ({ label: `${s.label} [${s.holder}]`, value: s.value }))} value={localSettings.defaultAtcStation} onChange={v => updateLocal('defaultAtcStation', v)} placeholder="Select station" />
+                                {/* Default ATC Station removed */}
                                 <Combobox label="Default Routing" options={[{ label: 'As Filed', value: 'As Filed' }, { label: 'SID', value: 'SID' }, { label: 'Radar Vectors', value: 'VECTORS' }, { label: 'Direct', value: 'DIRECT' }]} value={localSettings.defaultRouting} onChange={v => updateLocal('defaultRouting', v)} placeholder="Select routing" />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

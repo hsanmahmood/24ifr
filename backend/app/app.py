@@ -2,6 +2,7 @@ from flask import Flask, jsonify, session
 from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
 from waitress import serve
+from flask_compress import Compress
 
 if __package__ in (None, ''):
     import sys
@@ -17,6 +18,9 @@ from .external_api import start_cache_daemon
 app = Flask(__name__)
 app.config.from_object(Config)
 app.config['SESSION_COOKIE_NAME'] = 'session_id'
+
+# Enable gzip/deflate compression for responses
+Compress(app)
 
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 CORS(app, supports_credentials=True)
@@ -49,6 +53,7 @@ app.add_url_rule('/api/admin/analytics/clearances-per-day', 'analytics_clearance
 app.add_url_rule('/api/admin/analytics/clearances-last-7-days', 'analytics_clearances_last_7', auth.require_admin(lambda: api.analytics_clearances_last_n(7)))
 app.add_url_rule('/api/admin/analytics/clearances-last-30-days', 'analytics_clearances_last_30', auth.require_admin(lambda: api.analytics_clearances_last_n(30)))
 app.add_url_rule('/api/admin/analytics/user-growth', 'analytics_user_growth', auth.require_admin(api.load_admin_user_growth))
+app.add_url_rule('/api/admin/analytics/all', 'analytics_all', auth.require_admin(api.load_admin_analytics_all))
 
 @app.errorhandler(404)
 def not_found(e):

@@ -11,7 +11,7 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, generati
     const normalizeCode = (v) => (v || '').toString().trim().toUpperCase();
     const canonicalStation = (v) => normalizeCode(v).replace(/_CTR$/, '');
 
-    const [station, setStation] = useState(() => (defaultsEnabled ? settings.defaultAtcStation || '' : ''));
+    const [station, setStation] = useState('');
     const [departureAirport, setDepartureAirport] = useState('');
     const [runway, setRunway] = useState(() => settings.defaultRunway || '');
     const [atisLetter, setAtisLetter] = useState(() => settings.defaultAtisLetter || '');
@@ -38,8 +38,6 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, generati
             setRoutingDetails('');
             return;
         }
-
-        setStation(settings.defaultAtcStation || '');
         setRouting(settings.defaultRouting || 'As Filed');
         setSidDetails(settings.defaultSidRoutingDetails || settings.defaultRoutingDetails || '');
         setDirectDetails(settings.defaultDirectRoutingDetails || settings.defaultRoutingDetails || '');
@@ -48,7 +46,7 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, generati
             if ((settings.defaultRouting || 'As Filed') === 'DIRECT') return settings.defaultDirectRoutingDetails || settings.defaultRoutingDetails || '';
             return '';
         });
-    }, [defaultsEnabled, settings.defaultAtcStation, settings.defaultRouting, settings.defaultSidRoutingDetails, settings.defaultDirectRoutingDetails, settings.defaultRoutingDetails]);
+    }, [defaultsEnabled, settings.defaultRouting, settings.defaultSidRoutingDetails, settings.defaultDirectRoutingDetails, settings.defaultRoutingDetails]);
 
     useEffect(() => {
         const dataList = controllers?.data || (Array.isArray(controllers) ? controllers : []);

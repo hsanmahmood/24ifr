@@ -14,7 +14,6 @@ export const CLEARANCE_PLACEHOLDERS = [
 
 export const DEFAULT_CLEARANCE_SETTINGS = {
     clearanceTemplate: DEFAULT_CLEARANCE_TEMPLATE,
-    defaultAtcStation: '',
     defaultRouting: 'As Filed',
     defaultRoutingDetails: '',
     uppercaseCallsign: true,
@@ -23,7 +22,6 @@ export const DEFAULT_CLEARANCE_SETTINGS = {
 export const normalizeSettings = (settings = {}) => ({
     ...DEFAULT_CLEARANCE_SETTINGS,
     clearanceTemplate: settings.clearanceTemplate ?? DEFAULT_CLEARANCE_SETTINGS.clearanceTemplate,
-    defaultAtcStation: settings.defaultAtcStation ?? DEFAULT_CLEARANCE_SETTINGS.defaultAtcStation,
     defaultRouting: settings.defaultRouting ?? DEFAULT_CLEARANCE_SETTINGS.defaultRouting,
     defaultRoutingDetails: settings.defaultRoutingDetails ?? DEFAULT_CLEARANCE_SETTINGS.defaultRoutingDetails,
     uppercaseCallsign: settings.uppercaseCallsign ?? DEFAULT_CLEARANCE_SETTINGS.uppercaseCallsign,
@@ -104,7 +102,7 @@ export const buildClearanceText = ({ flightPlan, formSettings = {}, advancedSett
 
     const template = settings.clearanceTemplate || DEFAULT_CLEARANCE_TEMPLATE;
     const callsign = flightPlan?.callsign ? (settings.uppercaseCallsign ? flightPlan.callsign.toUpperCase() : flightPlan.callsign) : '';
-    const station = formSettings.station || settings.defaultAtcStation || '';
+    const station = formSettings.station || '';
     const runway = formSettings.runway || '';
     const atisLetter = formSettings.atisLetter || '';
     const initialClimb = formSettings.initialClimb || '';

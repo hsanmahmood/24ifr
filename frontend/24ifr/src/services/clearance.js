@@ -148,7 +148,6 @@ export const PLACEHOLDERS = [
 
 export const normalizeSettings = (s = {}) => ({
     clearanceTemplate: s.clearanceTemplate || DEFAULT_TEMPLATE,
-    defaultAtcStation: s.defaultAtcStation || '',
     defaultRouting: s.defaultRouting || 'As Filed',
     defaultRoutingDetails: s.defaultRoutingDetails || '',
     defaultSidRoutingDetails: s.defaultSidRoutingDetails || '',
@@ -185,7 +184,7 @@ export const buildClearanceText = ({ flightPlan, formSettings = {}, advancedSett
 
     const template = settings.clearanceTemplate || DEFAULT_TEMPLATE;
     const callsign = flightPlan?.callsign ? (settings.uppercaseCallsign ? flightPlan.callsign.toUpperCase() : flightPlan.callsign) : '';
-    const station = formSettings.station || (settings.defaultSettingsEnabled ? settings.defaultAtcStation : '') || '';
+    const station = formSettings.station || '';
     const runway = formSettings.runway || '';
     const atisLetter = formSettings.atisLetter || '';
     const initialClimb = formSettings.initialClimb || '';

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Combobox from '../components/Combobox';
-import { loadUserSettings, saveUserSettings, loadControllers } from '../services/api';
+import { loadUserSettings, saveUserSettings } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import { DEFAULT_CLEARANCE_SETTINGS, DEFAULT_CLEARANCE_TEMPLATE, CLEARANCE_PLACEHOLDERS, normalizeSettings } from '../services/clearance';
 
@@ -11,39 +11,14 @@ const ConfigPage = () => {
     const [isDirty, setIsDirty] = useState(false);
     const [showExport, setShowExport] = useState(false);
     const [showPreview, setShowPreview] = useState(false);
-    const [availableStations, setAvailableStations] = useState([]);
+    
     const textareaRef = useRef(null);
 
     useEffect(() => {
         const storedSettings = normalizeSettings(loadUserSettings() || {});
         setSettings(storedSettings);
 
-        const loadStationOptions = async () => {
-            try {
-                const controllers = await loadControllers();
-                const dataList = controllers?.data || (Array.isArray(controllers) ? controllers : []);
-                const activeStations = dataList
-                    .map((controller) => {
-                        let callsign = controller.callsign;
-                        if (!callsign && controller.airport && controller.position) {
-                            callsign = `${controller.airport}_${controller.position}`;
-                        }
-                        return {
-                            label: callsign,
-                            value: callsign,
-                            holder: controller.holder || 'Unknown',
-                            claimable: controller.claimable,
-                        };
-                    })
-                    .filter((controller) => controller.value && controller.claimable === false)
-                    .sort((a, b) => a.label.localeCompare(b.label));
-                setAvailableStations(activeStations);
-            } catch (error) {
-                console.error('Failed to load station options:', error);
-            }
-        };
-
-        loadStationOptions();
+        // Default ATC station removed; no station options loaded for admin config
     }, []);
 
     const handleSaveTemplate = () => {
@@ -261,20 +236,7 @@ const ConfigPage = () => {
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <label className="space-y-1.5">
-                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Default ATC Station</span>
-                        <div className={!defaultSettingsEnabled ? 'pointer-events-none opacity-50' : ''}>
-                            <Combobox
-                                options={availableStations.map((station) => ({
-                                    label: `${station.label} [${station.holder}]`,
-                                    value: station.value,
-                                }))}
-                                value={settings.defaultAtcStation}
-                                onChange={(value) => updateSetting('defaultAtcStation', value)}
-                                placeholder="Select an online station"
-                            />
-                        </div>
-                    </label>
+                    {/* Default ATC Station removed */}
                     <label className="space-y-1.5">
                         <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Default Routing</span>
                         <div className={!defaultSettingsEnabled ? 'pointer-events-none opacity-50' : ''}>

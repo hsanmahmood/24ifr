@@ -77,7 +77,12 @@ function App() {
   }
 
   if (!user) {
-    return <LoginScreen />;
+    return (
+      <>
+        <LegalPopup isOpen={isLegalPopupOpen} onClose={() => setIsLegalPopupOpen(false)} content={publicDocs.find(d => d.doc_key === 'privacy_terms')?.content_md || ''} />
+        <LoginScreen onOpenLegalPopup={() => setIsLegalPopupOpen(true)} />
+      </>
+    );
   }
 
   return (

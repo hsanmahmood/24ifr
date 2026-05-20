@@ -1,7 +1,7 @@
 import React from 'react';
 import { loginWithDiscord } from '../services/api';
 
-const LoginScreen = () => {
+const LoginScreen = ({ onOpenLegalPopup }) => {
     return (
         <main className="min-h-screen bg-background-dark px-4 text-zinc-300">
             <div className="mx-auto flex min-h-screen w-full max-w-xs items-center justify-center">
@@ -17,6 +17,15 @@ const LoginScreen = () => {
                         </svg>
                         Login with Discord
                     </button>
+                    <div className="mt-4 flex items-center justify-center gap-3">
+                        <button
+                            type="button"
+                            onClick={onOpenLegalPopup}
+                            className="text-[11px] font-semibold uppercase tracking-[0.25em] text-zinc-500 transition-colors hover:text-primary"
+                        >
+                            Privacy & Terms
+                        </button>
+                    </div>
                 </div>
             </div>
         </main>
