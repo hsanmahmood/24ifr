@@ -1,12 +1,19 @@
 from functools import wraps
 from flask import session, redirect, request, jsonify, current_app
-import json
 from requests_oauthlib import OAuth2Session
 from postgrest import APIError
-from urllib.parse import urlsplit, urlunsplit
 
 from .config import Config
 from .database import supabase
+
+LOCAL_REDIRECT_URIS = {
+    'http://localhost:5173': 'http://localhost:5173/auth/discord/callback',
+    'http://localhost:5174': 'http://localhost:5174/auth/discord/callback',
+}
+
+
+def _resolve_redirect_uri(origin):
+    return LOCAL_REDIRECT_URIS.get(origin, Config.DISCORD_REDIRECT_URI)
 
 def require_auth(f):
     @wraps(f)
@@ -31,51 +38,27 @@ def discord_login():
         return jsonify({"error": "Discord OAuth not configured"}), 500
 
     scope = ['identify']
-    discord_session = OAuth2Session(Config.DISCORD_CLIENT_ID, redirect_uri=Config.DISCORD_REDIRECT_URI, scope=scope)
+    auth_origin = request.args.get('origin', Config.FRONTEND_URL)
+    redirect_uri = _resolve_redirect_uri(auth_origin)
+    discord_session = OAuth2Session(Config.DISCORD_CLIENT_ID, redirect_uri=redirect_uri, scope=scope)
     authorization_url, state = discord_session.authorization_url(Config.DISCORD_AUTH_BASE_URL)
     session['oauth2_state'] = state
-    session['auth_origin'] = request.args.get('origin', Config.FRONTEND_URL)
+    session['oauth2_redirect_uri'] = redirect_uri
+    session['auth_origin'] = auth_origin
     return redirect(authorization_url)
 
 def discord_callback():
+    redirect_uri = session.pop('oauth2_redirect_uri', Config.DISCORD_REDIRECT_URI)
     auth_origin = session.pop('auth_origin', Config.FRONTEND_URL)
 
     if request.values.get('error'):
         return redirect(f"{auth_origin}/?error={request.values['error']}")
 
-    # Debugging: log the incoming request URL and forwarded proto header
-    current_app.logger.info(f"Discord callback hit: request.url={request.url} X-Forwarded-Proto={request.headers.get('X-Forwarded-Proto')} CF-Visitor={request.headers.get('CF-Visitor')}")
-
-    # Resolve external scheme: prefer X-Forwarded-Proto, fall back to CF-Visitor JSON,
-    # and if missing default to 'https' (app sits behind Cloudflare in production).
-    try:
-        proto = request.headers.get('X-Forwarded-Proto')
-        if proto:
-            proto = proto.split(',')[0].strip()
-        else:
-            cf_visitor = request.headers.get('CF-Visitor')
-            if cf_visitor:
-                parsed = json.loads(cf_visitor)
-                proto = parsed.get('scheme')
-        if not proto:
-            proto = 'https'
-    except Exception:
-        current_app.logger.debug('Could not parse proxy proto headers', exc_info=True)
-        proto = 'https'
-
-    # Reconstruct the authorization_response URL with the resolved scheme. Do NOT
-    # mutate request.environ and do NOT pass the raw request.url to oauthlib.
-    try:
-        parsed = urlsplit(request.url)
-        rewritten = urlunsplit((proto, parsed.netloc, parsed.path, parsed.query, parsed.fragment))
-    except Exception:
-        # Fallback to using request.url if parsing fails (will likely error in oauthlib)
-        rewritten = request.url
-
-    discord_session = OAuth2Session(Config.DISCORD_CLIENT_ID, state=session.get('oauth2_state'), redirect_uri=Config.DISCORD_REDIRECT_URI)
+    authorization_response = f"{redirect_uri}?{request.query_string.decode()}" if request.query_string else redirect_uri
+    discord_session = OAuth2Session(Config.DISCORD_CLIENT_ID, state=session.get('oauth2_state'), redirect_uri=redirect_uri)
 
     try:
-        token = discord_session.fetch_token(Config.DISCORD_TOKEN_URL, client_secret=Config.DISCORD_CLIENT_SECRET, authorization_response=rewritten)
+        token = discord_session.fetch_token(Config.DISCORD_TOKEN_URL, client_secret=Config.DISCORD_CLIENT_SECRET, authorization_response=authorization_response)
         user_json = discord_session.get(Config.DISCORD_API_BASE_URL + '/users/@me').json()
     except Exception as e:
         current_app.logger.error(f"Discord OAuth token fetch/user fetch error: {e}", exc_info=True)

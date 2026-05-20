@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useNotification } from '../context/NotificationContext';
 import { loadUserClearances, loginWithDiscord } from '../services/api';
 
 const ProfileSkeleton = () => (
@@ -34,19 +35,61 @@ const ProfileSkeleton = () => (
     </main>
 );
 
+const ClearancePopup = ({ clearance, onClose }) => {
+    if (!clearance) return null;
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm">
+            <div className="w-full max-w-2xl rounded-xl border border-border-dark bg-surface-dark shadow-2xl">
+                <div className="flex items-start justify-between gap-4 border-b border-border-dark px-5 py-4">
+                    <div>
+                        <p className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500">Clearance</p>
+                        <h2 className="mt-1 text-xl font-bold text-white">{clearance.callsign || 'Generated Clearance'}</h2>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm font-semibold text-zinc-300 transition-colors hover:border-primary hover:text-white"
+                    >
+                        Close
+                    </button>
+                </div>
+                <div className="space-y-4 px-5 py-6 text-sm leading-7 text-zinc-300">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div className="rounded-lg border border-zinc-800 bg-card-bg px-4 py-3">
+                            <span className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500">Date</span>
+                            <span className="block text-white">{new Date(clearance.created_at).toLocaleString()}</span>
+                        </div>
+                        <div className="rounded-lg border border-zinc-800 bg-card-bg px-4 py-3">
+                            <span className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500">Destination</span>
+                            <span className="block text-white">{clearance.destination || 'N/A'}</span>
+                        </div>
+                    </div>
+                    <div className="rounded-lg border border-zinc-800 bg-[#050505] px-4 py-4">
+                        <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Clearance Text</p>
+                        <pre className="whitespace-pre-wrap font-mono text-sm text-zinc-200">{clearance.clearance_text || 'No clearance text available.'}</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const ProfilePage = () => {
     const { user, loading: authLoading } = useAuth();
+    const { notify } = useNotification();
     const [clearances, setClearances] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedClearance, setSelectedClearance] = useState(null);
 
     useEffect(() => {
         const fetchClearances = async () => {
             if (user) {
                 try {
                     const data = await loadUserClearances();
-                    setClearances(data);
+                    setClearances(Array.isArray(data) ? data : (data?.clearances || []));
                 } catch (error) {
                     console.error("Failed to load clearances:", error);
+                    notify.error('Failed to load your clearances.');
                 } finally {
                     setLoading(false);
                 }
@@ -91,16 +134,16 @@ const ProfilePage = () => {
 
             <div className="bg-surface-dark border border-border-dark rounded-lg overflow-hidden shadow-sm">
                 <div className="px-6 py-4 border-b border-border-dark flex justify-between items-center">
-                    <h2 className="font-display text-lg font-bold text-white tracking-wide uppercase">Recent Activity</h2>
+                    <h2 className="font-display text-lg font-bold text-white tracking-wide uppercase">Clearances</h2>
                 </div>
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm text-zinc-400">
+                    <table className="w-full min-w-[820px] text-left text-sm text-zinc-400">
                         <thead className="bg-zinc-900/50 text-xs uppercase font-bold text-zinc-500">
                             <tr>
                                 <th className="px-6 py-4 tracking-wider">Date</th>
                                 <th className="px-6 py-4 tracking-wider">Callsign</th>
                                 <th className="px-6 py-4 tracking-wider">Destination</th>
-                                <th className="px-6 py-4 tracking-wider">Clearance Preview</th>
+                                <th className="px-6 py-4 tracking-wider text-right">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-800">
@@ -113,17 +156,26 @@ const ProfilePage = () => {
                             ) : (
                                 clearances.map((item) => (
                                     <tr key={item.id} className="hover:bg-zinc-900/50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            {new Date(item.created_at).toLocaleDateString()} <span className="text-zinc-600 text-xs ml-1">{new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                        <td className="px-6 py-4 whitespace-nowrap text-white">
+                                            {new Date(item.created_at).toLocaleDateString()}
+                                            <span className="text-zinc-600 text-xs ml-1">
+                                                {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
                                         </td>
                                         <td className="px-6 py-4 font-bold text-white font-display">
                                             {item.callsign}
                                         </td>
-                                        <td className="px-6 py-4 font-mono text-xs bg-zinc-900/50 rounded px-2 py-1 w-fit">
+                                        <td className="px-6 py-4 font-mono text-xs bg-zinc-900/50 rounded px-2 py-1 w-fit text-zinc-300">
                                             {item.destination}
                                         </td>
-                                        <td className="px-6 py-4 truncate max-w-xs text-xs italic text-zinc-500">
-                                            "{item.clearance_text}"
+                                        <td className="px-6 py-4 text-right">
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedClearance(item)}
+                                                className="rounded-md bg-primary px-4 py-2 text-xs font-bold uppercase tracking-wider text-black transition-colors hover:brightness-95"
+                                            >
+                                                View
+                                            </button>
                                         </td>
                                     </tr>
                                 ))
@@ -132,6 +184,8 @@ const ProfilePage = () => {
                     </table>
                 </div>
             </div>
+
+            <ClearancePopup clearance={selectedClearance} onClose={() => setSelectedClearance(null)} />
         </main>
     );
 };

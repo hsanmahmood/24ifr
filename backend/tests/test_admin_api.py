@@ -11,10 +11,18 @@ class FakeFrom:
     def __init__(self, table, ret):
         self.table = table
         self.ret = ret
+        self._range_start = None
+        self._range_end = None
     def select(self, *args, **kwargs):
         return self
+    def range(self, start, end):
+        self._range_start = start
+        self._range_end = end
+        return self
     def execute(self):
-        return FakeResp(self.ret, None)
+        if self._range_start is None:
+            return FakeResp(self.ret, None)
+        return FakeResp(self.ret[self._range_start:self._range_end + 1], None)
     def upsert(self, payload, on_conflict=None):
         # emulate chainable API where upsert(...).execute() returns response
         self.ret = [payload]
@@ -36,8 +44,8 @@ class FakeSupabase:
             return FakeFrom(table, self._docs)
         if table == 'clearance_generations':
             return FakeFrom(table, self._daily)
-        if table == 'users':
-            # emulate users table returning created_at rows
+        if table == 'discord_users':
+            # emulate discord_users table returning created_at rows
             return FakeFrom(table, self._growth)
         return FakeFrom(table, [])
     def rpc(self, name, params=None):

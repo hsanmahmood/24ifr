@@ -19,23 +19,32 @@ class FakeFrom:
         self.ret = ret
         self._gte_field = None
         self._gte_value = None
+        self._range_start = None
+        self._range_end = None
     def select(self, *args, **kwargs):
         return self
     def gte(self, field, val):
         self._gte_field = field
         self._gte_value = val
         return self
+    def range(self, start, end):
+        self._range_start = start
+        self._range_end = end
+        return self
     def execute(self):
-        return FakeResp(self.ret, None)
+        if self._range_start is None:
+            return FakeResp(self.ret, None)
+        return FakeResp(self.ret[self._range_start:self._range_end + 1], None)
 
 class FakeSupabase:
-    def __init__(self, per_day=None, last7=None, last30=None, growth=None):
+    def __init__(self, per_day=None, last7=None, last30=None, growth=None, clearance_rows=None):
         # per_day/last7/last30 are lists of {'date':..., 'count':...}
         # convert them to created_at rows for clearance_generations queries
         self._per_day = per_day or []
         self._last7 = last7 or []
         self._last30 = last30 or []
         self._growth = growth or []
+        self._clearance_rows = clearance_rows
     def rpc(self, name, params=None):
         if name == 'get_admin_users':
             # convert growth rows to created_at format
@@ -46,10 +55,17 @@ class FakeSupabase:
         return FakeRPC([])
     def from_(self, table):
         if table == 'clearance_generations':
+            if self._clearance_rows is not None:
+                return FakeFrom(table, self._clearance_rows)
             # choose an appropriate dataset depending on what's expected in the tests
             # use _per_day as the base for per-day queries
             rows = []
             for r in self._per_day:
+                rows.append({'created_at': r.get('date')})
+            return FakeFrom(table, rows)
+        if table == 'discord_users':
+            rows = []
+            for r in self._growth:
                 rows.append({'created_at': r.get('date')})
             return FakeFrom(table, rows)
         if table == 'users':
@@ -109,6 +125,49 @@ def test_user_growth(client):
     assert all(isinstance(c, int) for c in counts)
     assert all(counts[i] <= counts[i+1] for i in range(len(counts)-1))
 
+
+def test_admin_analytics_overview(client):
+    resp = client.get('/api/admin/analytics/overview')
+    assert resp.status_code == 200
+    data = json.loads(resp.data)
+    assert 'metrics' in data
+    assert 'charts' in data
+    assert isinstance(data['charts'].get('clearances_per_day', []), list)
+    assert isinstance(data['charts'].get('user_growth', []), list)
+
+
+def test_user_growth_falls_back_to_discord_users(monkeypatch):
+    from backend.app import api
+    from datetime import date
+
+    class FailingRPC:
+        def execute(self):
+            raise RuntimeError('rpc unavailable')
+
+    class DiscordOnlyFrom(FakeFrom):
+        pass
+
+    class DiscordOnlySupabase:
+        def rpc(self, name, params=None):
+            return FailingRPC()
+
+        def from_(self, table):
+            if table == 'discord_users':
+                return DiscordOnlyFrom(table, [{'created_at': date.today().isoformat()}])
+            return DiscordOnlyFrom(table, [])
+
+    monkeypatch.setattr(api, 'supabase', DiscordOnlySupabase())
+    flask_app.config['TESTING'] = True
+    with flask_app.test_client() as c:
+        with c.session_transaction() as sess:
+            sess['user'] = {'id': 1, 'is_admin': True}
+
+        resp = c.get('/api/admin/analytics/user-growth?days=7')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert isinstance(data, list)
+        assert any(item['count'] > 0 for item in data)
+
 def test_protection_requires_admin(monkeypatch):
     # replace supabase with no-op to ensure auth fails first
     from backend.app import api
@@ -123,3 +182,24 @@ def test_protection_requires_admin(monkeypatch):
             sess['user'] = {'id':2, 'is_admin': False}
         resp2 = c.get('/api/admin/analytics/user-growth')
         assert resp2.status_code == 403
+
+
+def test_admin_analytics_overview_handles_more_than_1000_rows(monkeypatch):
+    from backend.app import api
+    from datetime import date
+
+    today = date.today().isoformat()
+    clearance_rows = [{'created_at': today} for _ in range(1001)]
+    fake = FakeSupabase(clearance_rows=clearance_rows, growth=[{'date': today, 'count': 1}])
+    monkeypatch.setattr(api, 'supabase', fake)
+
+    flask_app.config['TESTING'] = True
+    with flask_app.test_client() as c:
+        with c.session_transaction() as sess:
+            sess['user'] = {'id': 1, 'is_admin': True}
+
+        resp = c.get('/api/admin/analytics/overview')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert data['metrics']['total_clearances'] == 1001
+        assert data['metrics']['today_clearances'] == 1001

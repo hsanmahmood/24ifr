@@ -7,12 +7,14 @@ import Toast from './components/Toast';
 import './index.css';
 import './styles/skeleton.css';
 
+const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '') || '/';
+
 const root = createRoot(document.getElementById('root'));
 
 root.render(
   // StrictMode removed — was doubling useEffect fetches in dev
   <NotificationProvider>
-    <BrowserRouter>
+    <BrowserRouter basename={routerBasename}>
       <AuthProvider>
         <App />
       </AuthProvider>

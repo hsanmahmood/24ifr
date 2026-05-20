@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { loadLeaderboard } from '../services/api';
+import { useNotification } from '../context/NotificationContext';
 
 const TotalClearancesSkeleton = () => (
     <div className="bg-surface-dark border border-border-dark p-6 rounded-lg shadow-sm relative overflow-hidden group">
@@ -48,6 +49,7 @@ const LeaderboardTableSkeleton = () => (
 
 const LeaderboardPage = () => {
     const { user } = useAuth();
+    const { notify } = useNotification();
     const [data, setData] = useState({ total_clearances: 0, leaderboard: [] });
     const [loading, setLoading] = useState(true);
 
@@ -58,12 +60,15 @@ const LeaderboardPage = () => {
                 setData(res || { total_clearances: 0, leaderboard: [] });
             } catch (err) {
                 console.error(err);
+                notify.error('Failed to load leaderboard data.');
             } finally {
                 setLoading(false);
             }
         };
         fetchStats();
     }, []);
+
+    const topUsers = (data.leaderboard || []).slice(0, 10);
 
     return (
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-8 pt-20 lg:pt-8">
@@ -87,29 +92,29 @@ const LeaderboardPage = () => {
             {loading ? <LeaderboardTableSkeleton /> : (
                 <div className="bg-surface-dark border border-border-dark rounded-lg overflow-hidden shadow-sm">
                     <div className="px-6 py-4 border-b border-border-dark">
-                        <h2 className="font-display text-lg font-bold text-white tracking-wide uppercase">Top Controllers</h2>
+                        <h2 className="font-display text-lg font-bold text-white tracking-wide uppercase">Top 10</h2>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm text-zinc-400">
                             <thead className="bg-zinc-900/50 text-xs uppercase font-bold text-zinc-500">
                                 <tr>
                                     <th className="px-6 py-4 tracking-wider">Rank</th>
-                                    <th className="px-6 py-4 tracking-wider">Controller</th>
+                                    <th className="px-6 py-4 tracking-wider">User</th>
                                     <th className="px-6 py-4 tracking-wider text-right">Clearances</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-zinc-800">
-                                {data.leaderboard.length === 0 ? (
+                                {topUsers.length === 0 ? (
                                     <tr>
                                         <td colSpan="3" className="px-6 py-8 text-center text-zinc-600">
                                             No data available yet.
                                         </td>
                                     </tr>
                                 ) : (
-                                    data.leaderboard.map((u, index) => (
+                                    topUsers.map((u, index) => (
                                         <tr key={u.user_id || index} className="hover:bg-zinc-900/50 transition-colors">
                                             <td className="px-6 py-4 font-medium text-white">
-                                                {index + 1 === 1 ? '≡ƒÑç' : index + 1 === 2 ? '≡ƒÑê' : index + 1 === 3 ? '≡ƒÑë' : `#${index + 1}`}
+                                                {`#${index + 1}`}
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">

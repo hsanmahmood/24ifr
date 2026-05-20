@@ -1,21 +1,5 @@
 import React from 'react';
-
-const escapeHtml = (str = '') => str.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-
-const renderMarkdown = (md = '') => {
-    const text = String(md || '');
-    let out = escapeHtml(text);
-    out = out.replace(/^### (.*$)/gim, '<h3>$1</h3>');
-    out = out.replace(/^## (.*$)/gim, '<h2>$1</h2>');
-    out = out.replace(/^# (.*$)/gim, '<h1>$1</h1>');
-    out = out.replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>');
-    out = out.replace(/\*(.*?)\*/gim, '<em>$1</em>');
-    out = out.replace(/\[(.*?)\]\((.*?)\)/gim, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-    out = out.replace(/^[-\*] (.*$)/gim, '<li>$1</li>');
-    out = out.replace(/(<li>.*<\/li>)/gims, '<ul>$1</ul>');
-    out = out.replace(/^(?!<h|<ul|<li|<h\d)(.+)$/gim, '<p>$1</p>');
-    return out;
-};
+import { renderMarkdown } from './renderMarkdown';
 
 const SupportPopup = ({ isOpen, onClose, content = '' }) => {
     if (!isOpen) return null;
@@ -29,8 +13,15 @@ const SupportPopup = ({ isOpen, onClose, content = '' }) => {
                     <h2 className="text-xl font-bold text-white">SUPPORT</h2>
                 </div>
                 <div className="px-5 py-6 text-sm leading-7 text-zinc-300">
-                    <div className="rounded-lg border border-zinc-800 bg-[#050505] px-4 py-3">
-                        <div dangerouslySetInnerHTML={{ __html: html }} />
+                    <div className="doc-markdown max-h-[60vh] overflow-y-auto custom-scrollbar rounded-lg border border-zinc-800 bg-[#050505] px-4 py-4 text-center">
+                        {content ? (
+                            <div dangerouslySetInnerHTML={{ __html: html }} />
+                        ) : (
+                            <>
+                                <p>For bugs or suggestions, DM me on Discord.</p>
+                                <p className="mt-1 text-zinc-500">Discord user: h.a.s2</p>
+                            </>
+                        )}
                     </div>
                 </div>
                 <div className="flex justify-end border-t border-border-dark px-5 py-4">

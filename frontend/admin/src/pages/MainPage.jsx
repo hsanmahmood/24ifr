@@ -18,6 +18,7 @@ const MainPage = ({ onOpenLegalPopup }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const [isCreditsOpen, setIsCreditsOpen] = useState(false);
     const [isSupportOpen, setIsSupportOpen] = useState(false);
+    const [documents, setDocuments] = useState([]);
     const { user } = useAuth();
     const clearanceRef = useRef(null);
     const mainRef = useRef(null);
@@ -60,6 +61,20 @@ const MainPage = ({ onOpenLegalPopup }) => {
             selectFlightPlan(filteredFlightPlans[0]);
         }
     }, [filteredFlightPlans, selectedFlightPlan, selectFlightPlan]);
+
+    useEffect(() => {
+        const loadDocs = async () => {
+            try {
+                const result = await api.loadAdminDocuments();
+                setDocuments(result.documents || []);
+            } catch (error) {
+                console.error('Failed to load admin documents for popups:', error);
+                setDocuments([]);
+            }
+        };
+
+        loadDocs();
+    }, []);
 
     const generateSquawk = () => {
         const squawkRanges = { min: 1000, max: 7777, exclude: [7500, 7600, 7700] };
@@ -119,8 +134,16 @@ const MainPage = ({ onOpenLegalPopup }) => {
 
     return (
         <main ref={mainRef} className="flex-1 overflow-y-auto p-4 md:p-5 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 pt-20 lg:pt-6">
-            <AboutPopup isOpen={isCreditsOpen} onClose={() => setIsCreditsOpen(false)} />
-            <SupportPopup isOpen={isSupportOpen} onClose={() => setIsSupportOpen(false)} />
+            <AboutPopup
+                isOpen={isCreditsOpen}
+                onClose={() => setIsCreditsOpen(false)}
+                content={documents.find((doc) => doc.doc_key === 'credits')?.content_md || ''}
+            />
+            <SupportPopup
+                isOpen={isSupportOpen}
+                onClose={() => setIsSupportOpen(false)}
+                content={documents.find((doc) => doc.doc_key === 'support')?.content_md || ''}
+            />
             <div className="lg:col-span-8 flex flex-col gap-4">
                 <div className="bg-surface-dark border border-border-dark rounded-lg flex flex-col shadow-sm">
                     <div className="px-6 py-4 border-b border-border-dark flex justify-between items-center bg-surface-dark z-10 rounded-t-lg">

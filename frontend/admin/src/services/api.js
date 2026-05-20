@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.hasanmahmood.org';
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 const USER_SETTINGS_KEY = 'atc24_user_settings';
 
 const handleResponse = async (response) => {
@@ -101,6 +101,11 @@ export const loadAdminDailyClearances = async (days = 14) => {
     return handleResponse(response);
 };
 
+export const loadAdminAnalyticsOverview = async () => {
+    const response = await fetchWithCredentials(`${API_BASE_URL}/api/admin/analytics/overview`);
+    return handleResponse(response);
+};
+
 export const loadClearancesPerDay = async () => {
     const response = await fetchWithCredentials(`${API_BASE_URL}/api/admin/analytics/clearances-per-day`);
     return handleResponse(response);
@@ -118,5 +123,10 @@ export const loadClearancesLast30 = async () => {
 
 export const loadAdminUserGrowth = async (days = 30) => {
     const response = await fetchWithCredentials(`${API_BASE_URL}/api/admin/user-growth?days=${days}`);
+    return handleResponse(response);
+};
+
+export const loadAdminUserGrowthAll = async () => {
+    const response = await fetchWithCredentials(`${API_BASE_URL}/api/admin/user-growth?all=true`);
     return handleResponse(response);
 };

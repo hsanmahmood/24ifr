@@ -1,32 +1,12 @@
 import React from 'react';
+import { renderMarkdown } from './renderMarkdown';
 
-export const CHANGELOG_POPUP_STORAGE_KEY = '24ifr_changelog_dismissed_v1';
-
-const escapeHtml = (str = '') => str.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-
-const renderMarkdown = (md = '') => {
-    const text = String(md || '');
-    // basic conversions: headings, bold, italic, links, lists, paragraphs
-    let out = escapeHtml(text);
-    out = out.replace(/^### (.*$)/gim, '<h3>$1</h3>');
-    out = out.replace(/^## (.*$)/gim, '<h2>$1</h2>');
-    out = out.replace(/^# (.*$)/gim, '<h1>$1</h1>');
-    out = out.replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>');
-    out = out.replace(/\*(.*?)\*/gim, '<em>$1</em>');
-    out = out.replace(/\[(.*?)\]\((.*?)\)/gim, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-    // lists
-    out = out.replace(/^[-\*] (.*$)/gim, '<li>$1</li>');
-    out = out.replace(/(<li>.*<\/li>)/gims, '<ul>$1</ul>');
-    // paragraphs
-    out = out.replace(/^(?!<h|<ul|<li|<h\d)(.+)$/gim, '<p>$1</p>');
-    return out;
-};
+export const CHANGELOG_POPUP_STORAGE_KEY = '24ifr_changelog_seen_at_v1';
 
 const ChangelogPopup = ({ isOpen, onClose, content = '' }) => {
     if (!isOpen) return null;
 
     const handleClose = () => {
-        window.localStorage.setItem(CHANGELOG_POPUP_STORAGE_KEY, 'true');
         onClose?.();
     };
 
@@ -39,8 +19,10 @@ const ChangelogPopup = ({ isOpen, onClose, content = '' }) => {
                     <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary">Updates</p>
                     <h2 className="mt-1 text-xl font-bold text-white">Changelog</h2>
                 </div>
-                <div className="space-y-3 px-5 py-5 text-sm leading-6 text-zinc-300">
-                    <div dangerouslySetInnerHTML={{ __html: html }} />
+                <div className="px-5 py-5 text-sm leading-7 text-zinc-300">
+                    <div className="doc-markdown max-h-[60vh] overflow-y-auto custom-scrollbar rounded-lg border border-zinc-800 bg-[#050505] px-4 py-4">
+                        <div dangerouslySetInnerHTML={{ __html: html }} />
+                    </div>
                 </div>
                 <div className="flex justify-end border-t border-border-dark px-5 py-4">
                     <button

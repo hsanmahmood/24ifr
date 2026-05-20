@@ -1,8 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as api from '../services/api';
 
-const SKIP_AUTH = true; // TEMP: Skip Discord auth requirement
-
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
@@ -15,11 +13,11 @@ export const AuthProvider = ({ children }) => {
         try {
             const data = await api.checkAuthStatus();
             setAuthState({
-                user: data.authenticated ? data.user : (SKIP_AUTH ? { id: null, discord_id: null, username: 'Guest', avatar: null } : null),
+                user: data.authenticated ? data.user : null,
                 loading: false
             });
         } catch {
-            setAuthState({ user: SKIP_AUTH ? { id: null, discord_id: null, username: 'Guest', avatar: null } : null, loading: false });
+            setAuthState({ user: null, loading: false });
         }
     };
 

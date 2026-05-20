@@ -65,7 +65,10 @@ const LeaderboardPage = () => {
         const fetchData = async () => {
             try {
                 const result = await loadLeaderboard();
-                setData(result);
+                setData({
+                    leaderboard: Array.isArray(result?.leaderboard) ? result.leaderboard : [],
+                    total_clearances: Number(result?.total_clearances) || 0,
+                });
             } catch (err) {
                 console.error("Failed to load leaderboard:", err);
                 setError("Failed to load leaderboard data.");

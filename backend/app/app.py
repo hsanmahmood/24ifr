@@ -3,6 +3,13 @@ from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
 from waitress import serve
 
+if __package__ in (None, ''):
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    __package__ = 'app'
+
 from .config import Config
 from . import auth, api
 from .external_api import start_cache_daemon
@@ -27,13 +34,16 @@ app.add_url_rule('/api/flight-plans', 'fetch_flight_plans', api.fetch_flight_pla
 app.add_url_rule('/api/flight-plans/search', 'search_flight_plan_route', api.search_flight_plan_route)
 app.add_url_rule('/api/leaderboard/details', 'get_leaderboard_details', api.get_leaderboard_details)
 app.add_url_rule('/api/user/clearances', 'get_user_clearances', api.get_user_clearances)
+app.add_url_rule('/api/public/documents', 'load_public_documents', api.load_public_documents)
 app.add_url_rule('/api/clearance/generate', 'generate_clearance', api.generate_clearance, methods=['POST'])
 app.add_url_rule('/api/clearance/generate', 'clearance_generation_guide', api.clearance_generation_guide, methods=['GET'])
+app.add_url_rule('/api/clearance-generated', 'track_clearance_generation', api.track_clearance_generation, methods=['POST'])
 
 # Admin endpoints used by the admin frontend (require admin)
 app.add_url_rule('/api/admin/documents', 'load_admin_documents', auth.require_admin(api.load_admin_documents))
 app.add_url_rule('/api/admin/documents/<doc_key>', 'save_admin_document', auth.require_admin(api.save_admin_document), methods=['PUT'])
 app.add_url_rule('/api/admin/clearances/daily', 'load_admin_clearances_daily', auth.require_admin(api.load_admin_clearances_daily))
+app.add_url_rule('/api/admin/analytics/overview', 'load_admin_analytics_overview', auth.require_admin(api.load_admin_analytics_overview))
 app.add_url_rule('/api/admin/user-growth', 'load_admin_user_growth', auth.require_admin(api.load_admin_user_growth))
 app.add_url_rule('/api/admin/analytics/clearances-per-day', 'analytics_clearances_per_day', auth.require_admin(api.analytics_clearances_per_day))
 app.add_url_rule('/api/admin/analytics/clearances-last-7-days', 'analytics_clearances_last_7', auth.require_admin(lambda: api.analytics_clearances_last_n(7)))

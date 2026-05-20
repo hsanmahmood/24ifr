@@ -1,9 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { loadUserClearances, loginWithDiscord } from '../services/api';
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { loadUserClearances, loginWithDiscord } from '../services/api';
+
+const normalizeClearances = (payload) => {
+    if (Array.isArray(payload)) {
+        return payload;
+    }
+
+    if (Array.isArray(payload?.clearances)) {
+        return payload.clearances;
+    }
+
+    if (Array.isArray(payload?.data)) {
+        return payload.data;
+    }
+
+    return [];
+};
 
 const ProfilePage = () => {
     const { user, loading: authLoading } = useAuth();
@@ -15,9 +28,10 @@ const ProfilePage = () => {
             if (user) {
                 try {
                     const data = await loadUserClearances();
-                    setClearances(data);
+                    setClearances(normalizeClearances(data));
                 } catch (error) {
                     console.error("Failed to load clearances:", error);
+                    setClearances([]);
                 } finally {
                     setLoading(false);
                 }

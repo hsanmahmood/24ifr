@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.hasanmahmood.org';
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 const USER_SETTINGS_KEY = 'atc24_user_settings';
 
 const handleResponse = async (response) => {
@@ -86,7 +86,7 @@ export const updateUserSettings = (partial) => {
 
 export const loadPublicDocuments = async () => {
     try {
-        const res = await fetch(`${API_BASE_URL}/api/admin/documents`);
+        const res = await fetch(`${API_BASE_URL}/api/public/documents`);
         if (!res.ok) return [];
         const data = await res.json();
         return data.documents || [];

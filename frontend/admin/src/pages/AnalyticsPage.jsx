@@ -1,23 +1,139 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
-import { loadClearancesPerDay, loadClearancesLast7, loadClearancesLast30, loadAdminUserGrowth } from '../services/api';
+import { loadAdminAnalyticsOverview } from '../services/api';
 import {
     ResponsiveContainer,
     BarChart,
     Bar,
-    LineChart,
-    Line,
+    AreaChart,
+    Area,
     XAxis,
     YAxis,
     Tooltip,
     CartesianGrid,
 } from 'recharts';
 
-const ChartCard = ({ title, children }) => (
-    <section className="bg-surface-dark border border-border-dark rounded-lg p-5 md:p-6 shadow-sm">
-        <h2 className="font-display text-lg font-bold text-white tracking-wide uppercase">{title}</h2>
-        <div className="mt-4 rounded-lg border border-zinc-800 bg-black/30 p-4 h-64">
+const NUMBER_FORMATTER = new Intl.NumberFormat('en-US');
+const PERCENT_FORMATTER = new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+});
+
+const parseDate = (value) => new Date(`${value}T00:00:00Z`);
+
+const formatDate = (value) => value.toISOString().slice(0, 10);
+
+const addDays = (date, amount) => {
+    const next = new Date(date);
+    next.setUTCDate(next.getUTCDate() + amount);
+    return next;
+};
+
+const buildDateRange = (startDate, endDate) => {
+    const dates = [];
+    let current = parseDate(startDate);
+    const end = parseDate(endDate);
+
+    while (current <= end) {
+        dates.push(formatDate(current));
+        current = addDays(current, 1);
+    }
+
+    return dates;
+};
+
+const fillDailySeries = (series, carryForward = false) => {
+    if (!series || series.length === 0) {
+        return [];
+    }
+
+    const normalized = [...series]
+        .map((item) => ({
+            date: String(item?.date || '').slice(0, 10),
+            count: Number(item?.count) || 0,
+        }))
+        .filter((item) => item.date)
+        .sort((left, right) => left.date.localeCompare(right.date));
+
+    if (normalized.length === 0) {
+        return [];
+    }
+
+    const dateMap = new Map(normalized.map((item) => [item.date, item.count]));
+    const startDate = normalized[0].date;
+    const endDate = formatDate(new Date());
+    const dateRange = buildDateRange(startDate, endDate);
+    const output = [];
+    let lastValue = 0;
+
+    for (const date of dateRange) {
+        if (dateMap.has(date)) {
+            lastValue = dateMap.get(date);
+        }
+
+        output.push({
+            date,
+            count: carryForward ? lastValue : (dateMap.get(date) || 0),
+        });
+    }
+
+    return output;
+};
+
+const formatTrend = (value) => {
+    if (value === null) {
+        return '';
+    }
+
+    const sign = value > 0 ? '+' : '';
+    return `${sign}${PERCENT_FORMATTER.format(value)}%`;
+};
+
+const formatDateTick = (value) => String(value || '').slice(5);
+
+const CustomTooltip = ({ active, payload, label, unit }) => {
+    if (!active || !payload || payload.length === 0) {
+        return null;
+    }
+
+    const entry = payload[0];
+    return (
+        <div className="rounded-lg border border-border-dark bg-surface-dark px-3 py-2 shadow-lg">
+                <div className="analytics-label-font text-[10px] uppercase text-zinc-500">
+                {label}
+            </div>
+            <div className="mt-1 analytics-value-font text-sm text-white tabular-nums">
+                {NUMBER_FORMATTER.format(Number(entry?.value) || 0)} {unit}
+            </div>
+        </div>
+    );
+};
+
+const StatCard = ({ label, value, trend, accent = false }) => (
+    <div className="rounded-[10px] border border-border-dark bg-surface-dark p-4">
+        <div className="flex items-start justify-between gap-3">
+            <div>
+                <div className="analytics-label-font text-[10px] font-semibold uppercase text-zinc-500">
+                    {label}
+                </div>
+                <div className="analytics-value-font mt-3 text-3xl font-semibold leading-none text-white tabular-nums">
+                    {NUMBER_FORMATTER.format(value)}
+                </div>
+            </div>
+            <div className={`analytics-label-font text-[10px] font-semibold uppercase ${accent ? 'text-[#FFD700]' : 'text-zinc-500'}`}>
+                {trend}
+            </div>
+        </div>
+    </div>
+);
+
+const ChartShell = ({ title, children }) => (
+    <section className="rounded-[10px] border border-border-dark bg-surface-dark p-4 md:p-5">
+        <div className="analytics-label-font text-[10px] font-semibold uppercase text-zinc-500">
+            {title}
+        </div>
+        <div className="mt-4 h-[300px] rounded-[8px] border border-border-dark bg-card-bg p-3 md:p-4">
             {children}
         </div>
     </section>
@@ -27,158 +143,200 @@ const AnalyticsPage = () => {
     const { user, loading: authLoading } = useAuth();
     const { notify } = useNotification();
 
-    const [loadingPerDay, setLoadingPerDay] = useState(true);
-    const [dataPerDay, setDataPerDay] = useState([]);
-    const [errorPerDay, setErrorPerDay] = useState(null);
-
-    const [loading7, setLoading7] = useState(true);
-    const [series7, setSeries7] = useState([]);
-    const [error7, setError7] = useState(null);
-
-    const [loading30, setLoading30] = useState(true);
-    const [series30, setSeries30] = useState([]);
-    const [error30, setError30] = useState(null);
-
-    const [loadingGrowth, setLoadingGrowth] = useState(true);
-    const [userGrowth, setUserGrowth] = useState([]);
-    const [errorGrowth, setErrorGrowth] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [overview, setOverview] = useState({ metrics: {}, charts: {} });
 
     useEffect(() => {
-        const fetchAll = async () => {
+        const fetchAnalytics = async () => {
             if (!user) {
-                setLoadingPerDay(false);
-                setLoading7(false);
-                setLoading30(false);
-                setLoadingGrowth(false);
+                setLoading(false);
                 return;
             }
 
-            // per-day
-            setLoadingPerDay(true);
-            loadClearancesPerDay()
-                .then((d) => setDataPerDay(d || []))
-                .catch((e) => { console.error(e); setErrorPerDay(String(e)); })
-                .finally(() => setLoadingPerDay(false));
-
-            // last 7
-            setLoading7(true);
-            loadClearancesLast7()
-                .then((d) => setSeries7(d || []))
-                .catch((e) => { console.error(e); setError7(String(e)); })
-                .finally(() => setLoading7(false));
-
-            // last 30
-            setLoading30(true);
-            loadClearancesLast30()
-                .then((d) => setSeries30(d || []))
-                .catch((e) => { console.error(e); setError30(String(e)); })
-                .finally(() => setLoading30(false));
-
-            // user growth
-            setLoadingGrowth(true);
-            loadAdminUserGrowth(30)
-                .then((d) => setUserGrowth(d || []))
-                .catch((e) => { console.error(e); setErrorGrowth(String(e)); })
-                .finally(() => setLoadingGrowth(false));
+            setLoading(true);
+            try {
+                const response = await loadAdminAnalyticsOverview();
+                setOverview(response || { metrics: {}, charts: {} });
+            } catch (error) {
+                console.error('Failed to load analytics data:', error);
+                notify.error('Failed to load analytics data.');
+                setOverview({ metrics: {}, charts: {} });
+            } finally {
+                setLoading(false);
+            }
         };
-        fetchAll();
+
+        fetchAnalytics();
     }, [user, notify]);
 
-    if (authLoading) return <div className="page-loading-skeleton" />;
-    if (!user) return <div className="p-8">Please login to view analytics.</div>;
+    const clearancesSeries = useMemo(
+        () => fillDailySeries(overview?.charts?.clearances_per_day || [], false),
+        [overview],
+    );
+    const growthSeries = useMemo(
+        () => fillDailySeries(overview?.charts?.user_growth || [], true),
+        [overview],
+    );
+
+    const throughputSeries = useMemo(() => clearancesSeries.slice(-30), [clearancesSeries]);
+
+    const totalClearances = overview?.metrics?.total_clearances || 0;
+    const todayClearances = overview?.metrics?.today_clearances || 0;
+    const last7Clearances = overview?.metrics?.last7_clearances || 0;
+    const last15Clearances = overview?.metrics?.last15_clearances || 0;
+    const last30Clearances = overview?.metrics?.last30_clearances || 0;
+    const totalUsers = overview?.metrics?.total_users || 0;
+    const hasAnalyticsData = Boolean(
+        overview?.metrics &&
+        Object.keys(overview.metrics).length > 0 &&
+        overview?.charts &&
+        (overview.charts.clearances_per_day?.length || overview.charts.user_growth?.length)
+    );
+
+    const trends = overview?.metrics?.trends || {};
+
+    const metricCards = [
+        {
+            label: 'TOTAL CLEARANCES',
+            value: totalClearances,
+            trend: formatTrend(trends.total_clearances),
+        },
+        {
+            label: 'TODAY\'S CLEARANCES',
+            value: todayClearances,
+            trend: formatTrend(trends.today_clearances),
+        },
+        {
+            label: 'LAST 7 DAYS',
+            value: last7Clearances,
+            trend: formatTrend(trends.last7_clearances),
+        },
+        {
+            label: '15 DAY VOLUME',
+            value: last15Clearances,
+            trend: formatTrend(trends.last15_clearances),
+        },
+        {
+            label: '30 DAY VOLUME',
+            value: last30Clearances,
+            trend: formatTrend(trends.last30_clearances),
+            accent: true,
+        },
+        {
+            label: 'TOTAL USERS',
+            value: totalUsers,
+            trend: formatTrend(trends.total_users),
+        },
+    ];
+
+    if (authLoading) {
+        return <div className="page-loading-skeleton" />;
+    }
+
+    if (!user) {
+        return <main className="flex h-full items-center justify-center bg-[#131313]" />;
+    }
+
+    if (loading) {
+        return (
+            <main className="h-full overflow-y-auto bg-background-dark p-4 md:p-5 lg:p-6">
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {Array.from({ length: 6 }).map((_, index) => (
+                        <div key={index} className="h-[118px] rounded-[10px] border border-border-dark bg-surface-dark p-4">
+                            <div className="skeleton h-3 w-28 rounded" />
+                            <div className="skeleton mt-4 h-10 w-24 rounded" />
+                        </div>
+                    ))}
+                </div>
+                <div className="mt-4 grid gap-4 xl:grid-cols-2">
+                    <div className="h-[360px] rounded-[10px] border border-border-dark bg-surface-dark p-4" />
+                    <div className="h-[360px] rounded-[10px] border border-border-dark bg-surface-dark p-4" />
+                </div>
+            </main>
+        );
+    }
 
     return (
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-6 pt-20 lg:pt-8">
-            <header className="bg-surface-dark border border-border-dark rounded-lg p-5 md:p-6 shadow-sm">
-                <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Analytics</p>
-                <h1 className="mt-2 font-display text-3xl font-bold text-white uppercase tracking-wide">Analytics</h1>
-                <p className="mt-2 text-sm text-zinc-400">Clearance and user growth metrics.</p>
-            </header>
+        <main className="h-full overflow-y-auto bg-background-dark p-4 md:p-5 lg:p-6">
+            {!hasAnalyticsData && (
+                <div className="mb-4 rounded-[10px] border border-border-dark bg-surface-dark px-4 py-3 text-sm text-zinc-400">
+                    No analytics data is available yet.
+                </div>
+            )}
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {metricCards.map((card) => (
+                    <StatCard
+                        key={card.label}
+                        label={card.label}
+                        value={card.value}
+                        trend={card.trend}
+                        accent={card.accent}
+                    />
+                ))}
+            </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <ChartCard title="Clearances Per Day">
-                    {loadingPerDay ? (
-                        <div className="h-44 skeleton rounded" />
-                    ) : errorPerDay ? (
-                        <div className="text-sm text-red-400">{errorPerDay}</div>
-                    ) : (
-                        <>
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={dataPerDay} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                                    <XAxis dataKey="date" tickFormatter={(d) => d.slice(5)} stroke="#9ca3af" />
-                                    <YAxis stroke="#9ca3af" />
-                                    <Tooltip formatter={(value) => [value, 'Clearances']} />
-                                    <Bar dataKey="count" fill="#f5c518" />
-                                </BarChart>
-                            </ResponsiveContainer>
-                            <div className="mt-2 text-xs text-zinc-500">X: Date • Y: Clearances</div>
-                        </>
-                    )}
-                </ChartCard>
+            <div className="mt-4 grid gap-4 xl:grid-cols-2">
+                <ChartShell title="USER GROWTH">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={growthSeries} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                            <defs>
+                                <linearGradient id="growthFill" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#FFD700" stopOpacity={0.35} />
+                                    <stop offset="95%" stopColor="#FFD700" stopOpacity={0.02} />
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid stroke="#393939" strokeDasharray="2 2" vertical={false} />
+                            <XAxis
+                                dataKey="date"
+                                tickFormatter={formatDateTick}
+                                tick={{ fill: '#8f8f8f', fontSize: 11, fontFamily: 'Hanken Grotesk, sans-serif' }}
+                                tickLine={false}
+                                axisLine={{ stroke: '#393939' }}
+                                minTickGap={24}
+                            />
+                            <YAxis
+                                tick={{ fill: '#8f8f8f', fontSize: 11, fontFamily: 'Hanken Grotesk, sans-serif' }}
+                                tickLine={false}
+                                axisLine={{ stroke: '#393939' }}
+                                allowDecimals={false}
+                            />
+                            <Tooltip content={<CustomTooltip unit="users" />} />
+                            <Area
+                                type="monotone"
+                                dataKey="count"
+                                stroke="#FFD700"
+                                strokeWidth={2}
+                                fill="url(#growthFill)"
+                                dot={false}
+                                activeDot={{ r: 3 }}
+                            />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </ChartShell>
 
-                <ChartCard title="Clearances - Last 7 days">
-                    {loading7 ? (
-                        <div className="h-44 skeleton rounded" />
-                    ) : error7 ? (
-                        <div className="text-sm text-red-400">{error7}</div>
-                    ) : (
-                        <>
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={series7} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                                    <XAxis dataKey="date" tickFormatter={(d) => d.slice(5)} stroke="#9ca3af" />
-                                    <YAxis stroke="#9ca3af" />
-                                    <Tooltip formatter={(value) => [value, 'Clearances']} />
-                                    <Bar dataKey="count" fill="#f5c518" />
-                                </BarChart>
-                            </ResponsiveContainer>
-                            <div className="mt-2 text-xs text-zinc-500">X: Date • Y: Clearances</div>
-                        </>
-                    )}
-                </ChartCard>
-
-                <ChartCard title="Clearances - Last 30 days">
-                    {loading30 ? (
-                        <div className="h-44 skeleton rounded" />
-                    ) : error30 ? (
-                        <div className="text-sm text-red-400">{error30}</div>
-                    ) : (
-                        <>
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={series30} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                                    <XAxis dataKey="date" tickFormatter={(d) => d.slice(5)} stroke="#9ca3af" />
-                                    <YAxis stroke="#9ca3af" />
-                                    <Tooltip formatter={(value) => [value, 'Clearances']} />
-                                    <Bar dataKey="count" fill="#60a5fa" />
-                                </BarChart>
-                            </ResponsiveContainer>
-                            <div className="mt-2 text-xs text-zinc-500">X: Date • Y: Clearances</div>
-                        </>
-                    )}
-                </ChartCard>
-
-                <ChartCard title="User growth (30 days)">
-                    {loadingGrowth ? (
-                        <div className="h-44 skeleton rounded" />
-                    ) : errorGrowth ? (
-                        <div className="text-sm text-red-400">{errorGrowth}</div>
-                    ) : (
-                        <>
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={userGrowth} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                                    <XAxis dataKey="date" tickFormatter={(d) => d.slice(5)} stroke="#9ca3af" />
-                                    <YAxis stroke="#9ca3af" />
-                                    <Tooltip formatter={(value) => [value, 'Users']} />
-                                    <Line type="monotone" dataKey="count" stroke="#34d399" strokeWidth={2} dot={{ r: 2 }} />
-                                </LineChart>
-                            </ResponsiveContainer>
-                            <div className="mt-2 text-xs text-zinc-500">X: Date • Y: Cumulative users</div>
-                        </>
-                    )}
-                </ChartCard>
+                <ChartShell title="CLEARANCES">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={throughputSeries} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                            <CartesianGrid stroke="#393939" strokeDasharray="2 2" vertical={false} />
+                            <XAxis
+                                dataKey="date"
+                                tickFormatter={formatDateTick}
+                                tick={{ fill: '#8f8f8f', fontSize: 11, fontFamily: 'Hanken Grotesk, sans-serif' }}
+                                tickLine={false}
+                                axisLine={{ stroke: '#393939' }}
+                                minTickGap={20}
+                            />
+                            <YAxis
+                                tick={{ fill: '#8f8f8f', fontSize: 11, fontFamily: 'Hanken Grotesk, sans-serif' }}
+                                tickLine={false}
+                                axisLine={{ stroke: '#393939' }}
+                                allowDecimals={false}
+                            />
+                            <Tooltip content={<CustomTooltip unit="clearances" />} />
+                            <Bar dataKey="count" fill="#FFD700" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </ChartShell>
             </div>
         </main>
     );
