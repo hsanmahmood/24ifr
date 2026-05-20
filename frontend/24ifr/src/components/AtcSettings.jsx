@@ -233,7 +233,11 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, generati
                         </datalist>
                     </div>
                 </div>
-                <button type="submit" className="w-full bg-primary hover:brightness-110 text-black font-bold uppercase tracking-widest py-3.5 rounded transition-all shadow-sm flex items-center justify-center gap-2">
+                <button
+                    type="submit"
+                    disabled={!canGenerate || generationLoading}
+                    className="w-full bg-primary hover:brightness-110 text-black font-bold uppercase tracking-widest py-3.5 rounded transition-all shadow-sm flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:brightness-100"
+                >
                     <span className="material-symbols-outlined text-xl">check_circle</span> Generate
                 </button>
             </form>

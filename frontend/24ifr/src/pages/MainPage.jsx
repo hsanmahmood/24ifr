@@ -34,8 +34,10 @@ const MainPage = ({ onOpenLegalPopup, onOpenAboutPopup, onOpenSupportPopup }) =>
         return filteredPlans.slice(start, start + PLANS_PER_PAGE);
     }, [filteredPlans, currentPage]);
 
+    const canGenerateClearance = Boolean(selectedFlightPlan && departureAirport);
+
     const handleGenerateClearance = async (formSettings) => {
-        if (!selectedFlightPlan || !departureAirport) return;
+        if (!canGenerateClearance) return;
 
         setGenerationLoading(true);
         try {
@@ -148,7 +150,7 @@ const MainPage = ({ onOpenLegalPopup, onOpenAboutPopup, onOpenSupportPopup }) =>
                             loading={false}
                             generationLoading={generationLoading}
                             onAirportChange={setDepartureAirport}
-                            canGenerate={!!selectedFlightPlan && !!departureAirport}
+                            canGenerate={canGenerateClearance}
                         />
                     </div>
                     <div className="mt-4 flex items-center justify-center gap-3 flex-wrap">
