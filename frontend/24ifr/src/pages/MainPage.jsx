@@ -42,12 +42,7 @@ const MainPage = ({ onOpenLegalPopup, onOpenAboutPopup, onOpenSupportPopup }) =>
         setGenerationLoading(true);
         try {
             const savedSettings = api.loadUserSettings() || {};
-            if (!savedSettings || Object.keys(savedSettings).length === 0) {
-                console.warn('Please configure clearance settings in Config before generating a clearance.');
-                setGenerationLoading(false);
-                return;
-            }
-
+            // Allow generation even if user hasn't configured settings; defaults will be applied
             const advancedSettings = normalizeSettings(savedSettings);
             const clearance = buildClearanceText({
                 flightPlan: selectedFlightPlan,

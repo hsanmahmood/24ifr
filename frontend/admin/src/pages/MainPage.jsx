@@ -25,7 +25,8 @@ const MainPage = ({ onOpenLegalPopup }) => {
 
     const normalizeCode = (value) => (value || '').toString().trim().toUpperCase();
     const savedSettings = api.loadUserSettings() || {};
-    const canGenerateClearance = Boolean(selectedAirport) && Object.keys(savedSettings).length > 0;
+    // Allow generation even if user settings are not configured; defaults will be applied
+    const canGenerateClearance = Boolean(selectedAirport);
     const filteredFlightPlans = useMemo(() => (
         selectedAirport
             ? flightPlans.filter((plan) => normalizeCode(plan.departing) === normalizeCode(selectedAirport))
@@ -92,17 +93,15 @@ const MainPage = ({ onOpenLegalPopup }) => {
                 notify.error('Please select a departure airport first.');
                 return;
             }
-        if (!savedSettings || Object.keys(savedSettings).length === 0) {
-            notify.error('Please configure clearance settings in Config before generating a clearance.');
-            return;
-        }
+        // If user settings are missing, proceed using defaults
+        // const advancedSettings = normalizeSettings(savedSettings);
 
         if (!selectedFlightPlan) {
             notify.error('Please select a flight plan first.');
             return;
         }
 
-        const advancedSettings = normalizeSettings(savedSettings);
+        const advancedSettings = normalizeSettings(savedSettings || {});
         const clearance = buildClearanceText({
             flightPlan: selectedFlightPlan,
             formSettings: settings,
