@@ -7,7 +7,7 @@ import Toast from './components/Toast';
 import './index.css';
 import './styles/skeleton.css';
 
-const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '') || '/';
+const routerBasename = window.location.pathname.startsWith('/admin') ? '/admin' : '/';
 
 const root = createRoot(document.getElementById('root'));
 
