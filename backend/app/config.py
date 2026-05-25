@@ -7,7 +7,9 @@ load_dotenv(Path(__file__).resolve().parents[1] / ".env.local", override=True)
 
 
 class Config:
-    SECRET_KEY = os.environ["SESSION_SECRET"]
+    SECRET_KEY = os.environ.get("SESSION_SECRET")
+    if not SECRET_KEY:
+        raise RuntimeError("Missing required environment variable: SESSION_SECRET")
     SESSION_COOKIE_NAME = "session_id"
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "true").lower() in ("1", "true", "yes")
