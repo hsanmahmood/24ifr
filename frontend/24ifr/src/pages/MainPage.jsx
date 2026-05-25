@@ -6,6 +6,7 @@ import { useFlightData } from '../hooks/useFlightData';
 import { useSettings } from '../context/SettingsContext';
 import * as api from '../services/api';
 import { buildClearanceText, normalizeSettings } from '../services/clearance';
+import { useNotification } from '../context/NotificationContext';
 
 const MainPage = ({ onOpenLegalPopup, onOpenAboutPopup, onOpenSupportPopup }) => {
     const { flightPlans, controllers, atis, selectedFlightPlan, loading, error, selectFlightPlan, refreshData } = useFlightData();
@@ -36,13 +37,14 @@ const MainPage = ({ onOpenLegalPopup, onOpenAboutPopup, onOpenSupportPopup }) =>
 
     const canGenerateClearance = Boolean(selectedFlightPlan && departureAirport);
 
+    const { notify } = useNotification();
+
     const handleGenerateClearance = async (formSettings) => {
         if (!canGenerateClearance) return;
 
         setGenerationLoading(true);
         try {
             const savedSettings = api.loadUserSettings() || {};
-            // Allow generation even if user hasn't configured settings; defaults will be applied
             const advancedSettings = normalizeSettings(savedSettings);
             const clearance = buildClearanceText({
                 flightPlan: selectedFlightPlan,
@@ -64,16 +66,15 @@ const MainPage = ({ onOpenLegalPopup, onOpenAboutPopup, onOpenSupportPopup }) =>
 
             try {
                 await api.trackClearanceGeneration(clearanceData);
-                console.log('Clearance generated and tracked');
-            } catch (err) {
-                console.error('Failed to track clearance:', err);
+                notify.success('Clearance generated');
+            } catch (_) {
+                notify.error('Failed to save clearance');
             }
         } finally {
             setGenerationLoading(false);
         }
     };
 
-    // Auto-scroll to clearance when generated
     useEffect(() => {
         if (generatedClearance && clearanceRef.current) {
             setTimeout(() => {

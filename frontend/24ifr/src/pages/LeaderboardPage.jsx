@@ -58,8 +58,7 @@ const LeaderboardPage = () => {
             try {
                 const res = await loadLeaderboard();
                 setData(res || { total_clearances: 0, leaderboard: [] });
-            } catch (err) {
-                console.error(err);
+            } catch (_) {
                 notify.error('Failed to load leaderboard data.');
             } finally {
                 setLoading(false);

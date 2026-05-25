@@ -157,8 +157,7 @@ const AnalyticsPage = () => {
             try {
                 const response = await loadAdminAnalyticsOverview();
                 setOverview(response || { metrics: {}, charts: {} });
-            } catch (error) {
-                console.error('Failed to load analytics data:', error);
+            } catch (err) {
                 notify.error('Failed to load analytics data.');
                 setOverview({ metrics: {}, charts: {} });
             } finally {

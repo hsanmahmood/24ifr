@@ -90,7 +90,6 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, onAirpor
     }, [controllers]);
 
     useEffect(() => {
-        // Build visible airport list from internal DB but only include airports with online stations.
         const airportsDb = generateAirports();
         const onlineCodes = new Set(availableStations.map(s => normalizeCode(s.airport)).filter(Boolean));
 
@@ -98,12 +97,10 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, onAirpor
             .filter(a => onlineCodes.has(normalizeCode(a.code)))
             .sort((a, b) => a.friendlyName.localeCompare(b.friendlyName));
 
-        // Only include airports present in internal DB and currently online.
         setAvailableAirports(visible);
     }, [availableStations]);
 
     const isValidICAO = (airport) => {
-        // ICAO codes are 4 uppercase letters, starting with a continent/region code
         return /^[A-Z]{4}$/.test(normalizeCode(airport));
     };
 
@@ -119,7 +116,6 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, onAirpor
     };
 
     const handleAirportChange = (airport) => {
-        // Only allow valid ICAO codes
         if (airport && !isValidICAO(airport)) {
             return;
         }
@@ -130,11 +126,9 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, onAirpor
         
         if (!airport) return;
 
-        // Get all stations for this airport
         const airportStations = availableStations.filter(s => normalizeCode(s.airport) === normalizeCode(airport));
         
         if (airportStations.length > 0) {
-            // Sort by rank and auto-select the lowest rank (most common for startup)
             const sortedByRank = airportStations.sort((a, b) => 
                 getStationRank(a.value) - getStationRank(b.value)
             );
@@ -253,11 +247,10 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, onAirpor
                                     .map((airport) => ({ airport, online: getStationCount(airport.code) }))
                                     .filter(a => a.online > 0)
                                     .map(({ airport, online }) => {
-                                            // Display only the first word of the friendly name, except for Greater Rockford (IRFD)
                                             const baseName = airport.friendlyName || airport.code;
                                             let displayName = baseName.split(/\s+/)[0];
                                             if (airport.code === 'IRFD' || /Greater\s+Rockford/i.test(baseName)) {
-                                                displayName = baseName; // exception
+                                                displayName = baseName;
                                             }
                                             return {
                                                 label: displayName,
@@ -269,7 +262,6 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, onAirpor
                                 onChange={handleAirportChange}
                                 placeholder="Select Airport First"
                             />
-                            {/* selected airport badge is shown inside Combobox selected area */}
                         </div>
                     </div>
 

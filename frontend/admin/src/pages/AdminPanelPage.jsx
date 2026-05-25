@@ -16,8 +16,6 @@ const DOC_LABELS = {
     support: 'Support',
 };
 
-// Analytics charts moved to separate page. Document Editor focuses on saving documents.
-
 const DocumentEditorSkeleton = () => (
     <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-6 pt-20 lg:pt-8">
         <header className="px-1">
@@ -153,7 +151,6 @@ const AdminPanelPage = () => {
                 const docsResult = await loadAdminDocuments();
                 const docs = docsResult.documents || [];
                 
-                // Ensure all expected documents exist with default empty content
                 const docsMap = Object.fromEntries(docs.map(d => [d.doc_key, d]));
                 const completeDocsList = DOC_ORDER.map(key => 
                     docsMap[key] || { doc_key: key, title: DOC_LABELS[key] || key, content_md: '' }
@@ -161,10 +158,8 @@ const AdminPanelPage = () => {
                 
                 setDocuments(completeDocsList);
                 setSelectedDocKey(DOC_ORDER[0]);
-            } catch (error) {
-                console.error('Failed to load admin data:', error);
+            } catch (err) {
                 notify.error('Failed to load admin data.');
-                // Set default empty documents so UI still works
                 setDocuments(DOC_ORDER.map(key => ({ doc_key: key, title: DOC_LABELS[key] || key, content_md: '' })));
                 setSelectedDocKey(DOC_ORDER[0]);
             } finally {
@@ -209,9 +204,8 @@ const AdminPanelPage = () => {
 
             setSaveMessage('Document saved.');
             setTimeout(() => setSaveMessage(null), 3000);
-        } catch (error) {
-            console.error('Failed to save document:', error);
-            const msg = error?.message || 'Failed to save document.';
+        } catch (err) {
+            const msg = err?.message || 'Failed to save document.';
             setSaveError(msg);
             setTimeout(() => setSaveError(null), 5000);
         } finally {

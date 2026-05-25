@@ -1,15 +1,16 @@
-import React, { createContext, useContext, useState } from 'react';
-import * as api from '../services/api';
-import { normalizeSettings } from '../services/clearance';
+import { createContext, useContext, useState } from "react";
+import { loadUserSettings, updateUserSettings } from "../services/api";
+import { normalizeSettings } from "../services/clearance";
 
-const SettingsContext = createContext();
+const SettingsContext = createContext(null);
 
 export const SettingsProvider = ({ children }) => {
-    const [settings, setSettings] = useState(() => normalizeSettings(api.loadUserSettings() || {}));
+    const [settings, setSettings] = useState(() => normalizeSettings(loadUserSettings() || {}));
 
-    const updateSettings = (newSettings) => {
-        const updated = normalizeSettings(api.updateUserSettings({ ...normalizeSettings(settings), ...newSettings }));
-        setSettings(updated);
+    const updateSettings = (partial) => {
+        const next = normalizeSettings({ ...settings, ...partial });
+        updateUserSettings(next);
+        setSettings(next);
     };
 
     return (

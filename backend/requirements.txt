@@ -1,8 +1,9 @@
-Flask
-Flask-Cors
-python-dotenv
-supabase
-waitress
-requests
-requests-oauthlib
-Flask-Compress
+Flask==3.1.1
+Flask-Cors==5.0.1
+Flask-Compress==1.17
+python-dotenv==1.1.0
+supabase==2.15.2
+waitress==3.0.2
+requests==2.32.3
+requests-oauthlib==2.0.0
+postgrest==1.0.1

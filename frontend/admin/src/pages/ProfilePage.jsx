@@ -29,8 +29,7 @@ const ProfilePage = () => {
                 try {
                     const data = await loadUserClearances();
                     setClearances(normalizeClearances(data));
-                } catch (error) {
-                    console.error("Failed to load clearances:", error);
+                } catch (_) {
                     setClearances([]);
                 } finally {
                     setLoading(false);

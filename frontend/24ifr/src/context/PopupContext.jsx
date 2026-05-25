@@ -16,8 +16,7 @@ export const PopupProvider = ({ children }) => {
         if (user) {
             const legalDismissed = localStorage.getItem('atc24_legal_dismissed') === 'true';
             const changelogDismissed = localStorage.getItem('atc24_changelog_dismissed') === 'true';
-            
-            // eslint-disable-next-line react-hooks/set-state-in-effect
+
             setPopups(prev => ({
                 ...prev,
                 legal: !legalDismissed,

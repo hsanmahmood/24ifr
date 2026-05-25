@@ -1,97 +1,56 @@
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
-const USER_SETTINGS_KEY = 'atc24_user_settings';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+const SETTINGS_KEY = "atc24_user_settings";
 
-const handleResponse = async (response) => {
-    const data = await response.json();
+const request = async (url, options = {}) => {
+    const response = await fetch(url, { ...options, credentials: "include" });
     if (!response.ok) {
-        throw new Error(data.error || `HTTP ${response.status}`);
+        const body = await response.text().catch(() => "");
+        throw new Error(`HTTP ${response.status}: ${body}`);
     }
-    return data.data !== undefined ? data.data : data;
+    return response.json();
 };
 
-const fetchWithAuth = (url, options = {}) => {
-    return fetch(url, { ...options, credentials: 'include' });
-};
+export const loadFlightPlans = () => request(`${API_BASE}/api/flight-plans`);
+export const loadControllers = () => request(`${API_BASE}/api/controllers`);
+export const loadAtis = () => request(`${API_BASE}/api/atis`);
+export const loadLeaderboard = () => request(`${API_BASE}/api/leaderboard/details`);
+export const loadUserClearances = () => request(`${API_BASE}/api/user/clearances`);
+export const checkAuthStatus = () => request(`${API_BASE}/api/auth/user`);
 
-export const loadFlightPlans = async () => {
-    const response = await fetchWithAuth(`${API_BASE_URL}/api/flight-plans`);
-    return handleResponse(response);
-};
-
-export const loadControllers = async () => {
-    const response = await fetchWithAuth(`${API_BASE_URL}/api/controllers`);
-    return handleResponse(response);
-};
-
-export const loadAtis = async () => {
-    const response = await fetchWithAuth(`${API_BASE_URL}/api/atis`);
-    return handleResponse(response);
-};
-
-
-export const loadLeaderboard = async () => {
-    const response = await fetchWithAuth(`${API_BASE_URL}/api/leaderboard/details`);
-    return handleResponse(response);
-};
-
-export const loadUserClearances = async () => {
-    const response = await fetchWithAuth(`${API_BASE_URL}/api/user/clearances`);
-    return handleResponse(response);
-};
-
-export const generateClearance = async (payload) => {
-    const response = await fetchWithAuth(`${API_BASE_URL}/api/clearance/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+export const trackClearanceGeneration = (payload) =>
+    request(`${API_BASE}/api/clearance-generated`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
     });
-    return handleResponse(response);
-};
 
-export const trackClearanceGeneration = async (payload) => {
-    const response = await fetchWithAuth(`${API_BASE_URL}/api/clearance-generated`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-    });
-    return handleResponse(response);
-};
+export const logout = () => request(`${API_BASE}/api/auth/logout`, { method: "POST" });
 
-export const checkAuthStatus = async () => {
-    const response = await fetchWithAuth(`${API_BASE_URL}/api/auth/user`);
-    return handleResponse(response);
+export const loadPublicDocuments = async () => {
+    try {
+        const data = await request(`${API_BASE}/api/public/documents`);
+        return data.documents || [];
+    } catch {
+        return [];
+    }
 };
 
 export const loginWithDiscord = () => {
-    const origin = window.location.origin;
-    window.location.href = `${API_BASE_URL}/auth/discord?origin=${encodeURIComponent(origin)}`;
-};
-
-export const logout = async () => {
-    const response = await fetchWithAuth(`${API_BASE_URL}/api/auth/logout`, { method: 'POST' });
-    return handleResponse(response);
+    window.location.href = `${API_BASE}/auth/discord?origin=${encodeURIComponent(window.location.origin)}`;
 };
 
 export const loadUserSettings = () => {
-    const saved = localStorage.getItem(USER_SETTINGS_KEY);
-    return saved ? JSON.parse(saved) : null;
+    try {
+        const saved = localStorage.getItem(SETTINGS_KEY);
+        return saved ? JSON.parse(saved) : null;
+    } catch {
+        return null;
+    }
 };
 
 export const updateUserSettings = (partial) => {
     const current = loadUserSettings() || {};
     const next = { ...current, ...partial };
-    localStorage.setItem(USER_SETTINGS_KEY, JSON.stringify(next));
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
     return next;
-};
-
-export const loadPublicDocuments = async () => {
-    try {
-        const res = await fetch(`${API_BASE_URL}/api/public/documents`);
-        if (!res.ok) return [];
-        const data = await res.json();
-        return data.documents || [];
-    } catch (e) {
-        console.warn('Failed to load public documents', e);
-        return [];
-    }
 };

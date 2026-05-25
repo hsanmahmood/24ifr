@@ -87,8 +87,7 @@ const ProfilePage = () => {
                 try {
                     const data = await loadUserClearances();
                     setClearances(Array.isArray(data) ? data : (data?.clearances || []));
-                } catch (error) {
-                    console.error("Failed to load clearances:", error);
+                } catch (_) {
                     notify.error('Failed to load your clearances.');
                 } finally {
                     setLoading(false);

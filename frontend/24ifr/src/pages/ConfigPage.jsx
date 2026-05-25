@@ -38,8 +38,6 @@ const ConfigPage = () => {
         setLocalSettings(normalizeSettings(settings));
     }, [settings]);
 
-    // Default ATC station feature removed: no station options are loaded
-
     const handleSave = () => {
         updateSettings(localSettings);
         setIsDirty(false);
@@ -104,7 +102,6 @@ const ConfigPage = () => {
                     {localSettings.defaultSettingsEnabled ? (
                         <>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                {/* Default ATC Station removed */}
                                 <Combobox label="Default Routing" options={[{ label: 'As Filed', value: 'As Filed' }, { label: 'SID', value: 'SID' }, { label: 'Radar Vectors', value: 'VECTORS' }, { label: 'Direct', value: 'DIRECT' }]} value={localSettings.defaultRouting} onChange={v => updateLocal('defaultRouting', v)} placeholder="Select routing" />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

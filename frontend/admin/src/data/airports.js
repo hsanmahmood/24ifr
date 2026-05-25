@@ -1,6 +1,3 @@
-// Minimal airport catalog for ATC selection.
-// Keep only the fields needed by the UI: code, friendlyName, frequencies, hasGround, stations.
-
 function generateAirports() {
     return [
         { code: 'IGAR', friendlyName: 'Airbase Garry', hasGround: false, defaultTowerFrequency: '118.800', defaultGroundFrequency: '', stations: ['IGAR_TWR'] },

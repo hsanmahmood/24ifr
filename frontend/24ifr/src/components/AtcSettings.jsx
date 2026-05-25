@@ -83,18 +83,15 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, generati
         });
 
         online.sort((a, b) => a.label.localeCompare(b.label));
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setAvailableStations(online);
     }, [controllers]);
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/exhaustive-deps
         const airportsDb = generateAirports();
         const onlineCodes = new Set(availableStations.map(s => normalizeCode(s.airport)).filter(Boolean));
         const visible = airportsDb
             .filter(a => onlineCodes.has(normalizeCode(a.code)))
             .sort((a, b) => a.friendlyName.localeCompare(b.friendlyName));
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setAvailableAirports(visible);
     }, [availableStations]);
 

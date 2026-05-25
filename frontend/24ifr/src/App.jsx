@@ -52,14 +52,11 @@ function App() {
 
   useEffect(() => {
     const checkDocs = async () => {
-      // Fetch all documents from backend
       const docs = await loadPublicDocuments();
       setPublicDocs(docs);
 
-      // Check if changelog was updated
       const changelog = docs.find(d => d.doc_key === 'changelog');
       if (changelog) {
-        // Normalize updated_at to an ISO string so comparisons are consistent
         let updatedAt = '';
         try {
           updatedAt = changelog.updated_at ? new Date(changelog.updated_at).toISOString() : '';
@@ -70,11 +67,9 @@ function App() {
         const keyUpdated = CHANGELOG_POPUP_STORAGE_KEY;
         const prev = window.localStorage.getItem(keyUpdated) || '';
         if (!prev) {
-          // First-time visitor: show changelog
           window.localStorage.setItem(keyUpdated, updatedAt);
           window.setTimeout(() => setIsChangelogPopupOpen(true), 600);
         } else if (prev !== updatedAt) {
-          // Changelog changed since last seen: update and show
           window.localStorage.setItem(keyUpdated, updatedAt);
           window.setTimeout(() => setIsChangelogPopupOpen(true), 600);
         }

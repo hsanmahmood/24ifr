@@ -1,3 +1,90 @@
+export const DEFAULT_TEMPLATE = "{CALLSIGN}, {ATC_STATION}, good day. Startup approved. Information {ATIS} correct. Cleared {DESTINATION} via {ROUTE}, runway {RUNWAY}. Initial climb FT{INITIAL_ALT}. Squawk {SQUAWK}.";
+
+export const PLACEHOLDERS = [
+    "{CALLSIGN}",
+    "{ATC_STATION}",
+    "{ATIS}",
+    "{DESTINATION}",
+    "{ROUTE}",
+    "{RUNWAY}",
+    "{INITIAL_ALT}",
+    "{FLIGHT_LEVEL}",
+    "{SQUAWK}",
+];
+
+export const DEFAULT_SETTINGS = {
+    clearanceTemplate: DEFAULT_TEMPLATE,
+    defaultRouting: "As Filed",
+    defaultRoutingDetails: "",
+    uppercaseCallsign: true,
+};
+
+export const normalizeSettings = (s = {}) => ({
+    clearanceTemplate: s.clearanceTemplate || DEFAULT_TEMPLATE,
+    defaultRouting: s.defaultRouting || "As Filed",
+    defaultRoutingDetails: s.defaultRoutingDetails || "",
+    uppercaseCallsign: s.uppercaseCallsign ?? true,
+});
+
+export const formatFlightLevel = (fl) => {
+    const num = Number(fl);
+    if (!Number.isFinite(num) || num <= 0) return "XXX";
+    const val = num > 999 ? Math.floor(num / 100) : num;
+    return String(val).padStart(3, "0");
+};
+
+export const generateSquawk = () => {
+    const excluded = new Set(["7500", "7600", "7700"]);
+    const digits = "01234567";
+    while (true) {
+        const code = Array.from({ length: 4 }, () => digits[Math.floor(Math.random() * digits.length)]).join("");
+        if (!excluded.has(code)) return code;
+    }
+};
+
+export const applyTemplate = (template, replacements) =>
+    Object.entries(replacements).reduce(
+        (out, [token, value]) => out.replace(new RegExp(`\\{${token}\\}`, "g"), value ?? ""),
+        template
+    ).trim();
+
+export const resolveRouting = ({ flightPlan, routing, routingDetails, settings }) => {
+    const s = normalizeSettings(settings);
+    const mode = routing || s.defaultRouting;
+    const details = routingDetails || s.defaultRoutingDetails || "";
+    if (mode === "As Filed") return flightPlan?.route || "";
+    if (mode === "SID") return details ? `the ${details} departure` : "the departure procedure";
+    if (mode === "DIRECT") return details ? `direct ${details}` : (flightPlan?.route || "direct");
+    if (mode === "VECTORS") return "Radar Vectors";
+    return details || flightPlan?.route || "as filed";
+};
+
+export const buildClearanceText = ({ flightPlan, formSettings = {}, advancedSettings = {} }) => {
+    const settings = normalizeSettings(advancedSettings);
+    const routePhrase = resolveRouting({
+        flightPlan,
+        routing: formSettings.routing,
+        routingDetails: formSettings.routingDetails,
+        settings,
+    });
+    const template = settings.clearanceTemplate || DEFAULT_TEMPLATE;
+    const callsign = flightPlan?.callsign
+        ? settings.uppercaseCallsign
+            ? flightPlan.callsign.toUpperCase()
+            : flightPlan.callsign
+        : "";
+    return applyTemplate(template, {
+        CALLSIGN: callsign,
+        ATC_STATION: formSettings.station || "",
+        ATIS: formSettings.atisLetter || "",
+        DESTINATION: flightPlan?.arriving || "",
+        ROUTE: routePhrase,
+        RUNWAY: formSettings.runway || "",
+        INITIAL_ALT: formSettings.initialClimb || "3000",
+        FLIGHT_LEVEL: formatFlightLevel(flightPlan?.flightlevel),
+        SQUAWK: generateSquawk(),
+    });
+};
 export const DEFAULT_CLEARANCE_TEMPLATE = '{CALLSIGN}, {ATC_STATION}, good day. Startup approved. Information {ATIS} correct. Cleared {DESTINATION} via {ROUTE}, runway {RUNWAY}. Initial climb FT{INITIAL_ALT}. Squawk {SQUAWK}.';
 
 export const CLEARANCE_PLACEHOLDERS = [

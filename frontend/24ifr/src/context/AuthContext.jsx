@@ -1,44 +1,26 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import * as api from '../services/api';
+import { createContext, useContext, useState, useEffect } from "react";
+import { checkAuthStatus, logout as apiLogout } from "../services/api";
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-    const [authState, setAuthState] = useState({
-        user: null,
-        loading: true
-    });
-
-    const checkAuth = async () => {
-        try {
-            const data = await api.checkAuthStatus();
-            setAuthState({
-                user: data.authenticated ? data.user : null,
-                loading: false
-            });
-        } catch {
-            setAuthState({ user: null, loading: false });
-        }
-    };
-
-    const logout = async () => {
-        await api.logout();
-        setAuthState({ user: null, loading: false });
-    };
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        checkAuth();
+        checkAuthStatus()
+            .then((data) => setUser(data.authenticated ? data.user : null))
+            .catch(() => setUser(null))
+            .finally(() => setLoading(false));
     }, []);
 
+    const logout = async () => {
+        await apiLogout().catch(() => {});
+        setUser(null);
+    };
+
     return (
-        <AuthContext.Provider value={{ 
-            user: authState.user, 
-            isAuthenticated: !!authState.user,
-            loading: authState.loading, 
-            logout, 
-            refreshAuth: checkAuth 
-        }}>
+        <AuthContext.Provider value={{ user, loading, isAuthenticated: !!user, logout }}>
             {children}
         </AuthContext.Provider>
     );
