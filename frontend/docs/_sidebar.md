@@ -1,0 +1,13 @@
+- [Home](/)
+- Getting Started
+	- [Overview](getting-started.md)
+	- [ATC Settings Fields](atc-settings.md)
+- Flight Operations
+	- [Reading Flight Plans](flight-plans.md)
+	- [Tower and Center Mode](tower-center-mode.md)
+- Clearance Generation
+	- [Phraseology Presets](phraseology-presets.md)
+	- [Available Tokens](tokens.md)
+	- [Editing a Clearance](editing-clearances.md)
+- Reference
+	- [Common Mistakes](common-mistakes.md)
