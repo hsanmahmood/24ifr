@@ -11,7 +11,7 @@ class ErrorBoundary extends React.Component {
     }
 
     componentDidCatch(error, errorInfo) {
-        // error captured; UI will display fallback
+        
     }
 
     render() {

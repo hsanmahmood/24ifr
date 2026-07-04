@@ -23,6 +23,7 @@ const Sidebar = () => {
         { to: '/config', icon: 'settings_suggest', label: 'Clearance Template' },
         { to: '/leaderboard', icon: 'leaderboard', label: 'Leaderboard' },
         { to: '/profile', icon: 'account_circle', label: 'Profile' },
+        { to: '/instructions', icon: 'menu_book', label: 'Instructions' },
     ];
 
     return (

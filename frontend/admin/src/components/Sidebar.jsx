@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 const Icon = ({ name, className = '' }) => {
     const base = `h-5 w-5 shrink-0 ${String(className || '')}`;
@@ -50,6 +50,10 @@ const Icon = ({ name, className = '' }) => {
                     <path d="M16 13v-2H7V8l-5 4 5 4v-3zM20 3h-8v2h8v14h-8v2h8a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z" />
                 </svg>
             );
+        case 'forum':
+            return (
+                <span className={`material-symbols-outlined ${base}`}>forum</span>
+            );
         default:
             return <span className={base}>{name}</span>;
     }
@@ -65,6 +69,7 @@ const Sidebar = () => {
     const navItems = [
         { to: '/', icon: 'document', label: 'Document Editor', end: true },
         { to: '/analytics', icon: 'analytics', label: 'Analytics' },
+        { to: '/feedback', icon: 'forum', label: 'FEEDBACK' },
     ];
 
     const handleLogout = async () => {

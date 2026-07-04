@@ -5,54 +5,63 @@ import {
     loginWithDiscord,
     loadAdminDocuments,
     saveAdminDocument,
+    loadAdminDailyClearances,
 } from '../services/api';
 
-const DOC_ORDER = ['privacy_terms', 'changelog', 'credits', 'support'];
+const DOC_ORDER = ['privacy_terms', 'credits', 'support', 'changelog'];
 
 const DOC_LABELS = {
     privacy_terms: 'Privacy & Terms',
-    changelog: 'Changelog',
     credits: 'Credits',
     support: 'Support',
+    changelog: 'Changelog',
 };
 
-const DocumentEditorSkeleton = () => (
-    <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-6 pt-20 lg:pt-8">
-        <header className="px-1">
-            <div className="skeleton h-10 w-56 rounded" />
-        </header>
+const ChartPanel = ({ series, loading }) => {
+    const maxCount = useMemo(() => {
+        if (!series.length) {
+            return 1;
+        }
+        return Math.max(...series.map((item) => item.count), 1);
+    }, [series]);
 
-        <section className="overflow-hidden rounded-lg border border-border-dark bg-surface-dark shadow-sm">
-            <div className="border-b border-border-dark p-5 md:p-6">
-                <div className="skeleton h-6 w-48 rounded" />
-                <div className="mt-4 flex flex-wrap gap-2">
-                    {Array.from({ length: 4 }).map((_, index) => (
-                        <div key={index} className="skeleton h-9 w-28 rounded-[6px]" />
-                    ))}
+    return (
+        <section className="bg-surface-dark border border-border-dark rounded-lg p-5 md:p-6 shadow-sm">
+            <div className="flex items-center justify-between gap-4">
+                <div>
+                    <h2 className="font-display text-lg font-bold text-white tracking-wide uppercase">Daily Clearances</h2>
+                    <p className="mt-1 text-xs text-zinc-500 uppercase tracking-wider">Last 14 days</p>
                 </div>
             </div>
 
-            <div className="p-5 md:p-6">
-                <div className="space-y-4">
-                    <div>
-                        <div className="skeleton h-3 w-10 rounded" />
-                        <div className="skeleton mt-1 h-10 w-full rounded-md" />
-                    </div>
-
-                    <div>
-                        <div className="skeleton h-3 w-24 rounded" />
-                        <div className="skeleton mt-1 h-[320px] w-full rounded-md" />
-                    </div>
-
-                    <div className="flex items-center justify-between gap-3 border-t border-border-dark pt-4">
-                        <div className="skeleton h-4 w-24 rounded" />
-                        <div className="skeleton h-9 w-28 rounded-[6px]" />
+            {loading ? (
+                <div className="mt-6 h-44 skeleton rounded" />
+            ) : (
+                <div className="mt-6 rounded-lg border border-zinc-800 bg-black/30 p-4">
+                    <div className="flex h-40 items-end gap-2">
+                        {series.map((item) => {
+                            const heightPct = Math.max((item.count / maxCount) * 100, item.count > 0 ? 8 : 3);
+                            const dateText = item.date.slice(5);
+                            return (
+                                <div key={item.date} className="flex flex-1 flex-col items-center gap-2">
+                                    <span className="text-[10px] text-zinc-500">{item.count}</span>
+                                    <div className="relative flex h-28 w-full items-end">
+                                        <div
+                                            className="w-full rounded-t bg-primary/90"
+                                            style={{ height: `${heightPct}%` }}
+                                            title={`${item.date}: ${item.count}`}
+                                        />
+                                    </div>
+                                    <span className="text-[10px] text-zinc-600">{dateText}</span>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
-            </div>
+            )}
         </section>
-    </main>
-);
+    );
+};
 
 const DocumentsPanel = ({
     documents,
@@ -66,19 +75,22 @@ const DocumentsPanel = ({
     onSave,
 }) => {
     return (
-        <section className="overflow-hidden bg-surface-dark border border-border-dark rounded-lg shadow-sm">
-            <div className="border-b border-border-dark p-5 md:p-6">
-                <h2 className="font-display text-xl font-bold text-white tracking-wide uppercase">Document Editor</h2>
-                <div className="mt-4 flex flex-wrap gap-2">
+        <section className="bg-surface-dark border border-border-dark rounded-lg p-5 md:p-6 shadow-sm">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                    <h2 className="font-display text-lg font-bold text-white tracking-wide uppercase">Content Editor</h2>
+                    <p className="mt-1 text-xs text-zinc-500 uppercase tracking-wider">Markdown content stored in backend</p>
+                </div>
+                <div className="flex items-center gap-2 overflow-x-auto">
                     {DOC_ORDER.map((key) => (
                         <button
                             key={key}
                             type="button"
                             onClick={() => setSelectedDocKey(key)}
                             className={[
-                                'rounded-[6px] border px-3 py-2 text-xs font-semibold uppercase tracking-wider transition-colors whitespace-nowrap',
+                                'rounded-md border px-3 py-2 text-xs font-semibold uppercase tracking-wider transition-colors whitespace-nowrap',
                                 selectedDocKey === key
-                                    ? 'border-primary text-black bg-primary'
+                                    ? 'border-primary text-primary bg-primary/10'
                                     : 'border-zinc-800 text-zinc-400 hover:border-primary hover:text-primary',
                             ].join(' ')}
                         >
@@ -88,39 +100,41 @@ const DocumentsPanel = ({
                 </div>
             </div>
 
-            <div className="p-5 md:p-6">
-                <div className="space-y-4">
-                    <div>
-                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Title</label>
-                        <input
-                            type="text"
-                            value={editorTitle}
-                            onChange={(event) => setEditorTitle(event.target.value)}
-                            className="mt-1 w-full rounded-md border border-zinc-800 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Markdown Content</label>
-                        <textarea
-                            value={editorContent}
-                            onChange={(event) => setEditorContent(event.target.value)}
-                            className="mt-1 min-h-[320px] w-full rounded-md border border-zinc-800 bg-black/40 px-3 py-3 text-sm text-zinc-200 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                        />
-                    </div>
-
-                    <div className="flex items-center justify-between gap-3 border-t border-border-dark pt-4">
-                        <p className="text-xs text-zinc-500">Loaded docs: {documents.length}</p>
-                        <button
-                            type="button"
-                            onClick={onSave}
-                            disabled={saving}
-                            className="rounded-[6px] bg-primary px-4 py-2 text-sm font-semibold text-black transition-colors hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                            {saving ? 'Saving...' : 'Save Changes'}
-                        </button>
-                    </div>
+            <div className="mt-5 space-y-4">
+                <div>
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Title</label>
+                    <input
+                        type="text"
+                        value={editorTitle}
+                        onChange={(event) => setEditorTitle(event.target.value)}
+                        className="mt-1 w-full rounded-md border border-zinc-800 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                    />
                 </div>
+
+                <div>
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Markdown Content</label>
+                    <textarea
+                        value={editorContent}
+                        onChange={(event) => setEditorContent(event.target.value)}
+                        className="mt-1 min-h-[320px] w-full rounded-md border border-zinc-800 bg-black/40 px-3 py-3 text-sm text-zinc-200 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                    />
+                </div>
+
+                <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs text-zinc-500">Editing: {DOC_LABELS[selectedDocKey] || selectedDocKey}</p>
+                    <button
+                        type="button"
+                        onClick={onSave}
+                        disabled={saving}
+                        className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-black transition-colors hover:brightness-95 disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                        {saving ? 'Saving...' : 'Save Changes'}
+                    </button>
+                </div>
+            </div>
+
+            <div className="mt-4 rounded-md border border-zinc-800 bg-black/20 px-3 py-2 text-xs text-zinc-500">
+                Loaded docs: {documents.length}
             </div>
         </section>
     );
@@ -135,9 +149,8 @@ const AdminPanelPage = () => {
     const [editorTitle, setEditorTitle] = useState('');
     const [editorContent, setEditorContent] = useState('');
     const [saving, setSaving] = useState(false);
-    const [saveMessage, setSaveMessage] = useState(null);
-    const [saveError, setSaveError] = useState(null);
 
+    const [series, setSeries] = useState([]);
     const [loadingData, setLoadingData] = useState(true);
 
     useEffect(() => {
@@ -148,20 +161,19 @@ const AdminPanelPage = () => {
             }
             setLoadingData(true);
             try {
-                const docsResult = await loadAdminDocuments();
+                const [docsResult, analyticsResult] = await Promise.all([
+                    loadAdminDocuments(),
+                    loadAdminDailyClearances(14),
+                ]);
                 const docs = docsResult.documents || [];
-                
-                const docsMap = Object.fromEntries(docs.map(d => [d.doc_key, d]));
-                const completeDocsList = DOC_ORDER.map(key => 
-                    docsMap[key] || { doc_key: key, title: DOC_LABELS[key] || key, content_md: '' }
-                );
-                
-                setDocuments(completeDocsList);
-                setSelectedDocKey(DOC_ORDER[0]);
-            } catch (err) {
+                setDocuments(docs);
+                setSeries(analyticsResult.series || []);
+
+                const initialKey = DOC_ORDER.find((key) => docs.some((doc) => doc.doc_key === key)) || DOC_ORDER[0];
+                setSelectedDocKey(initialKey);
+            } catch (error) {
+                console.error('Failed to load admin data:', error);
                 notify.error('Failed to load admin data.');
-                setDocuments(DOC_ORDER.map(key => ({ doc_key: key, title: DOC_LABELS[key] || key, content_md: '' })));
-                setSelectedDocKey(DOC_ORDER[0]);
             } finally {
                 setLoadingData(false);
             }
@@ -178,8 +190,7 @@ const AdminPanelPage = () => {
 
     const handleSave = async () => {
         if (!editorTitle.trim()) {
-            setSaveError('Title is required.');
-            setTimeout(() => setSaveError(null), 3000);
+            notify.error('Title is required.');
             return;
         }
 
@@ -190,45 +201,39 @@ const AdminPanelPage = () => {
                 content_md: editorContent,
             });
 
-            setDocuments((prev) => {
-                const existing = prev.find(d => d.doc_key === selectedDocKey);
-                const updated = {
-                    ...existing,
-                    doc_key: selectedDocKey,
-                    title: editorTitle,
-                    content_md: editorContent,
-                    updated_at: new Date().toISOString()
-                };
-                return prev.map(d => d.doc_key === selectedDocKey ? updated : d);
-            });
+            setDocuments((prev) => prev.map((doc) => (
+                doc.doc_key === selectedDocKey
+                    ? { ...doc, title: editorTitle, content_md: editorContent, updated_at: new Date().toISOString() }
+                    : doc
+            )));
 
-            setSaveMessage('Document saved.');
-            setTimeout(() => setSaveMessage(null), 3000);
-        } catch (err) {
-            const msg = err?.message || 'Failed to save document.';
-            setSaveError(msg);
-            setTimeout(() => setSaveError(null), 5000);
+            notify.success('Document saved.');
+        } catch (error) {
+            console.error('Failed to save document:', error);
+            notify.error('Failed to save document.');
         } finally {
             setSaving(false);
         }
     };
 
-    if (authLoading) {
-        return <DocumentEditorSkeleton />;
-    }
-
-    if (loadingData) {
-        return <DocumentEditorSkeleton />;
+    if (authLoading || loadingData) {
+        return (
+            <main className="flex-1 p-8 flex items-center justify-center pt-20 lg:pt-8">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary" />
+            </main>
+        );
     }
 
     if (!user) {
         return (
-            <main className="flex-1 p-8 flex items-center justify-center pt-20 lg:pt-8">
-                <div className="flex flex-col items-center gap-6">
-                    <img src="/logo.png" alt="24IFR" className="h-20 w-auto" />
+            <main className="flex-1 p-8 flex flex-col items-center justify-center text-center space-y-6 pt-20 lg:pt-8">
+                <div className="bg-surface-dark border border-border-dark p-8 rounded-lg max-w-md w-full shadow-lg">
+                    <span className="material-symbols-outlined text-6xl text-zinc-600 mb-4">admin_panel_settings</span>
+                    <h2 className="text-2xl font-display font-bold text-white mb-2">Admin Access</h2>
+                    <p className="text-zinc-400 mb-8">Please log in with Discord to access the admin panel.</p>
                     <button
                         onClick={loginWithDiscord}
-                        className="w-64 bg-primary hover:bg-primary-dim text-black font-bold py-3 px-4 rounded transition-all text-sm"
+                        className="w-full bg-primary hover:bg-primary-dim text-black font-bold uppercase tracking-widest py-3 px-4 rounded transition-all text-sm"
                     >
                         Login with Discord
                     </button>
@@ -239,16 +244,11 @@ const AdminPanelPage = () => {
 
     return (
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-6 pt-20 lg:pt-8">
-            <header className="px-1">
-                <h1 className="font-display text-3xl font-bold text-white uppercase tracking-wide">Document Editor</h1>
+            <header className="bg-surface-dark border border-border-dark rounded-lg p-5 md:p-6 shadow-sm">
+                <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Admin Workspace</p>
+                <h1 className="mt-2 font-display text-3xl font-bold text-white uppercase tracking-wide">Content & Analytics</h1>
+                <p className="mt-2 text-sm text-zinc-400">Manage markdown documents and monitor daily clearance activity.</p>
             </header>
-
-            {saveMessage && (
-                <div className="rounded-md bg-green-600/20 border border-green-700 px-4 py-2 text-sm text-green-200">{saveMessage}</div>
-            )}
-            {saveError && (
-                <div className="rounded-md bg-red-600/20 border border-red-700 px-4 py-2 text-sm text-red-300">{saveError}</div>
-            )}
 
             <DocumentsPanel
                 documents={documents}
@@ -261,6 +261,8 @@ const AdminPanelPage = () => {
                 saving={saving}
                 onSave={handleSave}
             />
+
+            <ChartPanel series={series} loading={loadingData} />
         </main>
     );
 };

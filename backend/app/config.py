@@ -12,8 +12,9 @@ class Config:
         raise RuntimeError("Missing required environment variable: SESSION_SECRET")
     SESSION_COOKIE_NAME = "session_id"
     SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "true").lower() in ("1", "true", "yes")
-    SESSION_COOKIE_SAMESITE = os.environ.get("SESSION_COOKIE_SAMESITE", "None")
+    # For local development (http://localhost), cookies must be insecure
+    SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "false").lower() in ("1", "true", "yes")
+    SESSION_COOKIE_SAMESITE = os.environ.get("SESSION_COOKIE_SAMESITE", "Lax")
     SESSION_COOKIE_DOMAIN = os.environ.get("SESSION_COOKIE_DOMAIN")
     PERMANENT_SESSION_LIFETIME = 2592000
 
@@ -31,5 +32,7 @@ class Config:
 
     FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
     ADMIN_URL = os.environ.get("ADMIN_URL", "")
+    # Optional comma-separated list of additional development CORS origins
+    DEV_CORS_ORIGINS = os.environ.get("DEV_CORS_ORIGINS", "")
 
     RELAY_URL = os.environ.get("RELAY_URL", "https://ws.awdevsoftware.org")

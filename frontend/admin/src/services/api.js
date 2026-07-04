@@ -1,4 +1,9 @@
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+let _apiBaseAdmin = import.meta.env.VITE_API_BASE_URL ?? '';
+
+if (import.meta.env.DEV && !_apiBaseAdmin) {
+    _apiBaseAdmin = '';
+}
+export const API_BASE_URL = String(_apiBaseAdmin).replace(/\/$/, '');
 const USER_SETTINGS_KEY = 'atc24_user_settings';
 
 const handleResponse = async (response) => {
@@ -130,3 +135,13 @@ export const loadAdminUserGrowthAll = async () => {
     const response = await fetchWithCredentials(`${API_BASE_URL}/api/admin/user-growth?all=true`);
     return handleResponse(response);
 };
+
+export const loadAdminFeedback = (page = 1) =>
+    fetchWithCredentials(`${API_BASE_URL}/api/admin/feedback?page=${page}&per_page=25`).then(handleResponse);
+
+export const pushFeedbackPrompt = (message) =>
+    fetchWithCredentials(`${API_BASE_URL}/api/admin/feedback/push`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message }),
+    }).then(handleResponse);

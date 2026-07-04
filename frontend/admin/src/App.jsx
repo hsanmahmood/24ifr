@@ -1,45 +1,45 @@
-import React from 'react';
-import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
+import LegalPopup, { LEGAL_POPUP_STORAGE_KEY } from './components/LegalPopup';
+import ChangelogPopup, { CHANGELOG_POPUP_STORAGE_KEY } from './components/ChangelogPopup';
 import AdminPanelPage from './pages/AdminPanelPage';
-import AnalyticsPage from './pages/AnalyticsPage';
-import { useNotification } from './context/NotificationContext';
+
+const AnalyticsPage = React.lazy(() => import('./pages/AnalyticsPage'));
+const FeedbackPage = React.lazy(() => import('./pages/FeedbackPage'));
 
 function App() {
-  const { notify } = useNotification();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [isLegalPopupOpen, setIsLegalPopupOpen] = useState(false);
+  const [isChangelogPopupOpen, setIsChangelogPopupOpen] = useState(false);
 
-  React.useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const auth = params.get('auth');
-    const error = params.get('error');
-
-    if (!auth && !error) {
-      return;
+  useEffect(() => {
+    const dismissed = window.localStorage.getItem(LEGAL_POPUP_STORAGE_KEY) === 'true';
+    if (!dismissed) {
+      setIsLegalPopupOpen(true);
     }
 
-    if (auth === 'success') {
-      notify.success('Logged in successfully');
-    } else if (error) {
-      const errorMessages = {
-        discord_auth_failed: 'Discord authentication failed. Please try again.',
-        db_error: 'Login completed, but we could not finish syncing your account.',
-        access_denied: 'Discord login was cancelled or denied.',
-      };
-
-      notify.error(errorMessages[error] || 'Authentication failed. Please try again.');
+    const changelogDismissed = window.localStorage.getItem(CHANGELOG_POPUP_STORAGE_KEY) === 'true';
+    if (!changelogDismissed) {
+      window.setTimeout(() => setIsChangelogPopupOpen(true), 600);
     }
-
-    navigate('/', { replace: true });
-  }, [location.search, navigate]);
+  }, []);
 
   return (
     <React.Suspense fallback={<div className="page-loading-skeleton" />}>
+      <LegalPopup isOpen={isLegalPopupOpen} onClose={() => setIsLegalPopupOpen(false)} />
+      <ChangelogPopup isOpen={isChangelogPopupOpen} onClose={() => setIsChangelogPopupOpen(false)} />
       <Routes>
         <Route path="/" element={<Layout />}>
-          <Route index element={<AdminPanelPage />} />
+          <Route
+            index
+            element={(
+              <AdminPanelPage
+                onOpenLegalPopup={() => setIsLegalPopupOpen(true)}
+              />
+            )}
+          />
           <Route path="analytics" element={<AnalyticsPage />} />
+          <Route path="feedback" element={<FeedbackPage />} />
         </Route>
       </Routes>
     </React.Suspense>

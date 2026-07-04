@@ -5,18 +5,38 @@ import requests
 from flask import current_app
 from .config import Config
 
-_cache = {}
-_cache_lock = threading.Lock()
-import threading
-import time
-import random
-import requests
-from .config import Config
-
 _cache: dict = {}
 _cache_lock = threading.Lock()
 _CACHE_TTL = 5
 _session = requests.Session()
+
+_AIRPORTS = [
+    {"icao": "IGAR", "ctr": None},
+    {"icao": "IJAF", "ctr": None},
+    {"icao": "IBAR", "ctr": None},
+    {"icao": "IBLT", "ctr": None},
+    {"icao": "IRFD", "ctr": None},
+    {"icao": "IGRV", "ctr": None},
+    {"icao": "IHEN", "ctr": None},
+    {"icao": "IZOL", "ctr": None},
+    {"icao": "ILAR", "ctr": None},
+    {"icao": "ILKL", "ctr": None},
+    {"icao": "IIAB", "ctr": None},
+    {"icao": "IMLR", "ctr": None},
+    {"icao": "IPAP", "ctr": None},
+    {"icao": "IPPH", "ctr": None},
+    {"icao": "ISCM", "ctr": None},
+    {"icao": "IDCS", "ctr": None},
+    {"icao": "IBTH", "ctr": None},
+    {"icao": "ISAU", "ctr": None},
+    {"icao": "ISKP", "ctr": None},
+    {"icao": "ITKO", "ctr": None},
+    {"icao": "ITRC", "ctr": None},
+    {"icao": "TVO", "ctr": None},
+    {"icao": "SHV", "ctr": None},
+    {"icao": "OWO", "ctr": None},
+    {"icao": "IKFL", "ctr": "IGCC"},
+]
 
 
 def _get(path: str):
@@ -52,6 +72,10 @@ def get_flight_plans(event: bool = False):
     return _get("/fpls/event" if event else "/fpls")
 
 
+def get_airports():
+    return list(_AIRPORTS)
+
+
 def get_health():
     return _get("/health")
 
@@ -71,18 +95,30 @@ def search_flight_plan(callsign: str, event: bool = False):
     return None
 
 
-def resolve_controller_for_airport(airport: str):
-    target = airport.strip().upper()
+def resolve_controller_for_airport(airport: str, airports=None):
+    target = str(airport or "").strip().upper()
     if not target:
         return {"atc_station": f"{target}_TWR", "airport": target, "position": "TWR", "controller": None}
     controllers = get_controllers()
     controller_list = controllers.get("data", [])
     if not isinstance(controller_list, list):
         return {"atc_station": f"{target}_TWR", "airport": target, "position": "TWR", "controller": None}
-    for controller in controller_list:
-        if str(controller.get("airport", "")).strip().upper() == target and controller.get("claimable") is False:
-            position = str(controller.get("position", "TWR")).strip().upper() or "TWR"
-            return {"atc_station": f"{target}_{position}", "airport": target, "position": position, "controller": controller}
+    position_priority = {"DEL": 0, "GND": 1, "TWR": 2}
+    station_controllers = sorted(
+        [controller for controller in controller_list if str(controller.get("airport", "")).strip().upper() == target and controller.get("claimable") is False],
+        key=lambda controller: position_priority.get(str(controller.get("position", "TWR")).strip().upper(), 99),
+    )
+    if station_controllers:
+        controller = station_controllers[0]
+        position = str(controller.get("position", "TWR")).strip().upper() or "TWR"
+        return {"atc_station": f"{target}_{position}", "airport": target, "position": position, "controller": controller}
+    airport_list = airports if isinstance(airports, list) else get_airports()
+    airport_data = next((item for item in airport_list if str(item.get("icao", item.get("code", ""))).strip().upper() == target), None)
+    ctr_prefix = airport_data.get("ctr") if airport_data else None
+    if ctr_prefix:
+        ctr_controller = next((controller for controller in controller_list if str(controller.get("callsign", "")).strip().upper().startswith(str(ctr_prefix).strip().upper()) and controller.get("claimable") is False), None)
+        if ctr_controller:
+            return {"atc_station": str(ctr_controller.get("callsign", "")).strip().upper(), "airport": target, "position": "CTR", "controller": ctr_controller}
     return {"atc_station": f"{target}_TWR", "airport": target, "position": "TWR", "controller": None}
 
 

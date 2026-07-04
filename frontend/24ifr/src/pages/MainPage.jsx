@@ -3,14 +3,12 @@ import AtcSettings from '../components/AtcSettings';
 import FlightPlanSection from '../components/MainPage/FlightPlanSection';
 import ClearanceDisplay from '../components/MainPage/ClearanceDisplay';
 import { useFlightData } from '../hooks/useFlightData';
-import { useSettings } from '../context/SettingsContext';
 import * as api from '../services/api';
 import { buildClearanceText, normalizeSettings } from '../services/clearance';
 import { useNotification } from '../context/NotificationContext';
 
 const MainPage = ({ onOpenLegalPopup, onOpenAboutPopup, onOpenSupportPopup }) => {
     const { flightPlans, controllers, atis, selectedFlightPlan, loading, error, selectFlightPlan, refreshData } = useFlightData();
-    const { settings } = useSettings();
     
     const [generatedClearance, setGeneratedClearance] = useState(null);
     const [generationLoading, setGenerationLoading] = useState(false);
@@ -25,8 +23,15 @@ const MainPage = ({ onOpenLegalPopup, onOpenAboutPopup, onOpenSupportPopup }) =>
     const PLANS_PER_PAGE = 25;
 
     const filteredPlans = useMemo(() => {
-        if (!departureAirport) return flightPlans;
-        return flightPlans.filter(p => p.departing?.toUpperCase() === departureAirport.toUpperCase());
+        const visiblePlans = !departureAirport
+            ? flightPlans
+            : flightPlans.filter(p => p.departing?.toUpperCase() === departureAirport.toUpperCase());
+
+        return [...visiblePlans].sort((a, b) => {
+            const departureComparison = (a.departing || '').localeCompare(b.departing || '');
+            if (departureComparison !== 0) return departureComparison;
+            return (a.callsign || '').localeCompare(b.callsign || '');
+        });
     }, [flightPlans, departureAirport]);
 
     const totalPages = Math.ceil(filteredPlans.length / PLANS_PER_PAGE);
@@ -34,6 +39,25 @@ const MainPage = ({ onOpenLegalPopup, onOpenAboutPopup, onOpenSupportPopup }) =>
         const start = (currentPage - 1) * PLANS_PER_PAGE;
         return filteredPlans.slice(start, start + PLANS_PER_PAGE);
     }, [filteredPlans, currentPage]);
+
+    useEffect(() => {
+        if (currentPage > totalPages && totalPages > 0) {
+            setCurrentPage(totalPages);
+        }
+    }, [currentPage, totalPages]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [departureAirport]);
+
+    useEffect(() => {
+        if (filteredPlans.length === 0) return;
+        const currentSelection = selectedFlightPlan?.callsign;
+        const stillVisible = currentSelection && filteredPlans.some((plan) => plan.callsign === currentSelection);
+        if (!stillVisible) {
+            selectFlightPlan(filteredPlans[0]);
+        }
+    }, [filteredPlans, selectedFlightPlan, selectFlightPlan]);
 
     const canGenerateClearance = Boolean(selectedFlightPlan && departureAirport);
 
@@ -117,6 +141,7 @@ const MainPage = ({ onOpenLegalPopup, onOpenAboutPopup, onOpenSupportPopup }) =>
                         onRefresh={handleRefresh}
                         refreshLoading={refreshLoading}
                     />
+
                     <ClearanceDisplay 
                         ref={clearanceRef}
                         clearance={generatedClearance} 
@@ -147,6 +172,7 @@ const MainPage = ({ onOpenLegalPopup, onOpenAboutPopup, onOpenSupportPopup }) =>
                             generationLoading={generationLoading}
                             onAirportChange={setDepartureAirport}
                             canGenerate={canGenerateClearance}
+                            selectedFlightPlan={selectedFlightPlan}
                         />
                     </div>
                     <div className="mt-4 flex items-center justify-center gap-3 flex-wrap">

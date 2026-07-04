@@ -1,15 +1,31 @@
 import React, { useEffect, useState } from 'react';
-import { renderMarkdown } from './renderMarkdown';
 
 export const LEGAL_POPUP_STORAGE_KEY = '24ifr_legal_popup_dismissed_v1';
 
+const escapeHtml = (str = '') => str.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+const renderMarkdown = (md = '') => {
+    const text = String(md || '');
+    let out = escapeHtml(text);
+    out = out.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+    out = out.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+    out = out.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+    out = out.replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>');
+    out = out.replace(/\*(.*?)\*/gim, '<em>$1</em>');
+    out = out.replace(/\[(.*?)\]\((.*?)\)/gim, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    out = out.replace(/^[-\*] (.*$)/gim, '<li>$1</li>');
+    out = out.replace(/(<li>.*<\/li>)/gims, '<ul>$1</ul>');
+    out = out.replace(/^(?!<h|<ul|<li|<h\d)(.+)$/gim, '<p>$1</p>');
+    return out;
+};
+
 const LegalPopup = ({ isOpen, onClose, content = '' }) => {
     const [displayContent, setDisplayContent] = useState(content);
-
+    
     useEffect(() => {
         setDisplayContent(content);
     }, [content]);
-
+    
     if (!isOpen) {
         return null;
     }
@@ -19,7 +35,7 @@ const LegalPopup = ({ isOpen, onClose, content = '' }) => {
         onClose?.();
     };
 
-    const html = renderMarkdown(displayContent || '') || '<p class="text-zinc-400">Privacy & Terms content not available.</p>';
+        const html = renderMarkdown(displayContent || '') || '<p class="text-zinc-400">Privacy & Terms content not available.</p>';
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm">
@@ -30,10 +46,14 @@ const LegalPopup = ({ isOpen, onClose, content = '' }) => {
                         <h2 className="mt-1 text-xl font-bold text-white">Privacy & Terms</h2>
                     </div>
                 </div>
-                <div className="px-5 py-5 text-sm leading-7 text-zinc-300">
-                    <div className="doc-markdown max-h-[60vh] overflow-y-auto custom-scrollbar rounded-lg border border-zinc-800 bg-[#050505] px-4 py-4">
-                        <div dangerouslySetInnerHTML={{ __html: html }} />
-                    </div>
+                    <div className="px-5 py-5 text-sm leading-7 text-zinc-300">
+                        <div className="max-h-[60vh] overflow-y-auto custom-scrollbar rounded-lg border border-zinc-800 bg-[#050505] px-4 py-4">
+                            {displayContent ? (
+                                <div dangerouslySetInnerHTML={{ __html: renderMarkdown(displayContent) }} />
+                            ) : (
+                                <p className="text-zinc-400">We only use your account details and generated clearance activity to run the app, keep your session working, and improve the service. We do not sell personal data. Use this app responsibly. Generated clearances are for simulation and training only.</p>
+                            )}
+                        </div>
                 </div>
                 <div className="flex justify-end border-t border-border-dark px-5 py-4">
                     <button
