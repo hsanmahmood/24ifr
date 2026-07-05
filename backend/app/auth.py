@@ -41,7 +41,7 @@ def require_admin(f):
 def discord_login():
     if not Config.DISCORD_CLIENT_ID or not Config.DISCORD_CLIENT_SECRET:
         return jsonify({"error": "Discord OAuth not configured"}), 500
-    origin = request.args.get("origin", Config.FRONTEND_URL)
+    origin = request.args.get("origin", Config.FRONTEND_URL.split(",")[0] if Config.FRONTEND_URL else "http://localhost:5173")
     redirect_uri = _resolve_redirect_uri(origin)
     oauth = OAuth2Session(Config.DISCORD_CLIENT_ID, redirect_uri=redirect_uri, scope=["identify"])
     authorization_url, state = oauth.authorization_url(Config.DISCORD_AUTH_BASE_URL)
@@ -53,7 +53,8 @@ def discord_login():
 
 def discord_callback():
     redirect_uri = session.pop("oauth2_redirect_uri", Config.DISCORD_REDIRECT_URI)
-    auth_origin = session.pop("auth_origin", Config.FRONTEND_URL)
+    default_origin = Config.FRONTEND_URL.split(",")[0] if Config.FRONTEND_URL else "http://localhost:5173"
+    auth_origin = session.pop("auth_origin", default_origin)
     if request.values.get("error"):
         return redirect(f"{auth_origin}/?error={request.values['error']}")
     authorization_response = (

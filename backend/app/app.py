@@ -15,33 +15,42 @@ app.config['SESSION_COOKIE_NAME'] = 'session_id'
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
 
-def _clean_origin(value):
-    if isinstance(value, str):
-        return value.strip()
-    return None
-
-
-allowed_origins = {
-    "http://localhost:5173",
-    "http://localhost:5174",
-}
-
-frontend = _clean_origin(getattr(Config, "FRONTEND_URL", None))
-if frontend:
-    allowed_origins.add(frontend)
-
-admin = _clean_origin(getattr(Config, "ADMIN_URL", None))
-if admin:
-    allowed_origins.add(admin)
-
-dev_origins = getattr(Config, "DEV_CORS_ORIGINS", None)
-if dev_origins:
-    for origin in dev_origins.split(","):
+def _parse_origins(value):
+    """Parse comma-separated origins from environment variable."""
+    if not value or not isinstance(value, str):
+        return []
+    origins = []
+    for origin in value.split(","):
         origin = origin.strip()
         if origin:
-            allowed_origins.add(origin)
+            origins.append(origin)
+    return origins
 
-CORS(app, supports_credentials=True, origins=list(allowed_origins))
+
+# Build allowed origins list
+allowed_origins = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+]
+
+# Add frontend URLs from environment (supports comma-separated list)
+frontend_origins = _parse_origins(getattr(Config, "FRONTEND_URL", None))
+allowed_origins.extend(frontend_origins)
+
+# Add admin URL from environment
+admin_origin = getattr(Config, "ADMIN_URL", None)
+if admin_origin:
+    admin_origins = _parse_origins(admin_origin)
+    allowed_origins.extend(admin_origins)
+
+# Add additional dev origins from environment
+dev_origins = _parse_origins(getattr(Config, "DEV_CORS_ORIGINS", None))
+allowed_origins.extend(dev_origins)
+
+# Remove duplicates while preserving order
+allowed_origins = list(dict.fromkeys(allowed_origins))
+
+CORS(app, supports_credentials=True, origins=allowed_origins)
 
 
 auth.register(app)

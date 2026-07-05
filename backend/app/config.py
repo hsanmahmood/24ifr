@@ -12,9 +12,16 @@ class Config:
         raise RuntimeError("Missing required environment variable: SESSION_SECRET")
     SESSION_COOKIE_NAME = "session_id"
     SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "false").lower() in ("1", "true", "yes")
-    SESSION_COOKIE_SAMESITE = os.environ.get("SESSION_COOKIE_SAMESITE", "Lax")
+    
+    # For cross-origin cookies with credentials, we need Secure=True and SameSite=None
+    # This is required when using CORS with supports_credentials=True
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_SAMESITE = "None"
+    
+    # Set cookie domain to allow sharing across subdomains if needed
+    # If not set, defaults to current domain
     SESSION_COOKIE_DOMAIN = os.environ.get("SESSION_COOKIE_DOMAIN")
+    
     PERMANENT_SESSION_LIFETIME = 2592000
 
     SUPABASE_URL = os.environ["SUPABASE_URL"]
@@ -29,7 +36,7 @@ class Config:
 
     ADMIN_DISCORD_IDS = [s.strip() for s in os.environ.get("ADMIN_DISCORD_IDS", "").split(",") if s.strip()]
 
-    FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173").split(",")
+    FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
     ADMIN_URL = os.environ.get("ADMIN_URL", "")
     DEV_CORS_ORIGINS = os.environ.get("DEV_CORS_ORIGINS", "")
 
