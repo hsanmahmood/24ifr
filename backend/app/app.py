@@ -14,26 +14,34 @@ app.config['SESSION_COOKIE_NAME'] = 'session_id'
 
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
-allowed_origins = [
+def normalize_origin(value):
+    if isinstance(value, str):
+        return value.strip()
+    return None
+
+
+allowed_origins = {
     "http://localhost:5173",
     "http://localhost:5174",
-]
+}
 
-if Config.FRONTEND_URL:
-    allowed_origins.append(Config.FRONTEND_URL)
+frontend = normalize_origin(Config.FRONTEND_URL)
+if frontend:
+    allowed_origins.add(frontend)
 
-if getattr(Config, "ADMIN_URL", None):
-    allowed_origins.append(Config.ADMIN_URL)
+admin = normalize_origin(getattr(Config, "ADMIN_URL", None))
+if admin:
+    allowed_origins.add(admin)
 
 if Config.DEV_CORS_ORIGINS:
-    allowed_origins.extend(
-        origin.strip()
-        for origin in Config.DEV_CORS_ORIGINS.split(",")
-        if origin.strip()
-    )
+    for origin in Config.DEV_CORS_ORIGINS.split(","):
+        origin = origin.strip()
+        if origin:
+            allowed_origins.add(origin)
 
-allowed_origins = list(dict.fromkeys(allowed_origins))
+allowed_origins = list(allowed_origins)
 
+CORS(app, supports_credentials=True, origins=allowed_origins)
 CORS(app, supports_credentials=True, origins=allowed_origins)
 @app.route('/')
 def status():
