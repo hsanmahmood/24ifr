@@ -3,10 +3,6 @@ site_url: https://hsanmahmood.github.io/24ifr/
 site_description: Documentation for 24IFR - ATC IFR Clearance Generator
 site_author: Hasan Mahmood
 
-# Repository
-repo_url: https://github.com/hsanmahmood/24ifr
-repo_name: hsanmahmood/24ifr
-
 # Navigation
 nav:
   - Home: index.md
@@ -32,7 +28,6 @@ theme:
         icon: material/weather-night
         name: Switch to dark mode
   features:
-    - navigation.tabs
     - navigation.sections
     - navigation.expand
     - navigation.top
@@ -64,13 +59,3 @@ markdown_extensions:
 # Custom CSS
 extra_css:
   - stylesheets/extra.css
-
-# Custom JavaScript
-extra_javascript:
-  - javascripts/extra.js
-
-# Extra
-extra:
-  social:
-    - icon: fontawesome/brands/github
-      link: https://github.com/hsanmahmood/24ifr
