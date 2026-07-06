@@ -13,13 +13,10 @@ class Config:
     SESSION_COOKIE_NAME = "session_id"
     SESSION_COOKIE_HTTPONLY = True
     
-    # For cross-origin cookies with credentials, we need Secure=True and SameSite=None
-    # This is required when using CORS with supports_credentials=True
-    SESSION_COOKIE_SECURE = True
+    
     SESSION_COOKIE_SAMESITE = "None"
     
-    # Set cookie domain to allow sharing across subdomains if needed
-    # If not set, defaults to current domain
+
     SESSION_COOKIE_DOMAIN = os.environ.get("SESSION_COOKIE_DOMAIN")
     
     PERMANENT_SESSION_LIFETIME = 2592000
