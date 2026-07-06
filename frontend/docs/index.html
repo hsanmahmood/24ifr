@@ -128,13 +128,16 @@
     .content {
       padding-top: 40px !important;
       padding-left: 40px !important;
+      background-color: #000000 !important;
     }
 
-    article.markdown-section {
+    article.markdown-section,
+    .markdown-section {
       color: #e4e4e7 !important;
       font-size: 14.5px;
       line-height: 1.8;
       max-width: var(--content-max-width) !important;
+      background-color: #000000 !important;
     }
 
     /* Typography - Match Main App */
@@ -143,73 +146,93 @@
     article.markdown-section h3,
     article.markdown-section h4,
     article.markdown-section h5,
-    article.markdown-section h6 {
+    article.markdown-section h6,
+    .markdown-section h1,
+    .markdown-section h2,
+    .markdown-section h3,
+    .markdown-section h4,
+    .markdown-section h5,
+    .markdown-section h6 {
       color: #ffffff !important;
       font-weight: 700;
       letter-spacing: -0.02em;
       line-height: 1.25;
     }
 
-    article.markdown-section h1 { 
+    article.markdown-section h1, 
+    .markdown-section h1 { 
       font-size: 2rem; 
       margin-bottom: 1.5rem; 
       margin-top: 0;
     }
-    article.markdown-section h2 { 
+    article.markdown-section h2,
+    .markdown-section h2 { 
       font-size: 1.5rem; 
       margin-top: 2.5rem; 
       margin-bottom: 1rem;
       border-bottom: 1px solid #27272a !important;
       padding-bottom: 0.5rem;
     }
-    article.markdown-section h3 { 
+    article.markdown-section h3,
+    .markdown-section h3 { 
       font-size: 1.25rem; 
       margin-top: 2rem; 
       margin-bottom: 0.75rem;
     }
-    article.markdown-section h4 {
+    article.markdown-section h4,
+    .markdown-section h4 {
       font-size: 1.1rem;
       margin-top: 1.5rem;
       margin-bottom: 0.5rem;
     }
 
-    article.markdown-section p {
+    article.markdown-section p,
+    .markdown-section p {
       margin: 0 0 1rem;
+      color: #e4e4e7 !important;
     }
 
-    article.markdown-section a {
+    article.markdown-section a,
+    .markdown-section a {
       color: #FACC15 !important;
       font-weight: 500;
       text-decoration: none;
     }
 
-    article.markdown-section a:hover {
+    article.markdown-section a:hover,
+    .markdown-section a:hover {
       text-decoration: underline;
     }
 
-    article.markdown-section strong {
+    article.markdown-section strong,
+    .markdown-section strong {
       color: #ffffff !important;
       font-weight: 600;
     }
 
-    article.markdown-section em {
-      color: #e4e4e7;
+    article.markdown-section em,
+    .markdown-section em {
+      color: #e4e4e7 !important;
     }
 
     /* Lists */
     article.markdown-section ul,
-    article.markdown-section ol {
+    article.markdown-section ol,
+    .markdown-section ul,
+    .markdown-section ol {
       margin: 1rem 0;
       padding-left: 1.5rem;
     }
 
-    article.markdown-section li {
+    article.markdown-section li,
+    .markdown-section li {
       margin: 0.5rem 0;
-      color: #e4e4e7;
+      color: #e4e4e7 !important;
     }
 
     /* Code Blocks - Match Main App */
-    article.markdown-section code {
+    article.markdown-section code,
+    .markdown-section code {
       font-family: var(--code-font-family) !important;
       background-color: #18181b !important;
       color: #f4f4f5 !important;
@@ -218,7 +241,8 @@
       font-size: 0.875em !important;
     }
 
-    article.markdown-section pre {
+    article.markdown-section pre,
+    .markdown-section pre {
       background-color: #111111 !important;
       border: 1px solid #18181b !important;
       border-radius: 6px !important;
@@ -226,7 +250,8 @@
       margin: 1.5rem 0 !important;
     }
 
-    article.markdown-section pre code {
+    article.markdown-section pre code,
+    .markdown-section pre code {
       background-color: transparent !important;
       padding: 0 !important;
       border-radius: 0 !important;
@@ -234,7 +259,8 @@
     }
 
     /* Blockquotes */
-    article.markdown-section blockquote {
+    article.markdown-section blockquote,
+    .markdown-section blockquote {
       border-left: 3px solid #FACC15 !important;
       color: #d4d4d8 !important;
       background-color: #111111 !important;
@@ -244,15 +270,18 @@
     }
 
     /* Tables - Match Main App */
-    article.markdown-section table {
+    article.markdown-section table,
+    .markdown-section table {
       width: 100% !important;
       border-collapse: collapse !important;
       margin: 2rem 0 !important;
       display: table !important;
+      background-color: #111111 !important;
     }
 
-    article.markdown-section th {
-      background-color: #111111 !important;
+    article.markdown-section th,
+    .markdown-section th {
+      background-color: #1a1a1a !important;
       border-bottom: 2px solid #27272a !important;
       border-top: none !important;
       border-left: none !important;
@@ -263,7 +292,9 @@
       text-align: left;
     }
 
-    article.markdown-section td {
+    article.markdown-section td,
+    .markdown-section td {
+      background-color: #111111 !important;
       border-bottom: 1px solid #18181b !important;
       border-top: none !important;
       border-left: none !important;
@@ -272,8 +303,24 @@
       color: #e4e4e7 !important;
     }
 
-    article.markdown-section tr:hover td {
-      background-color: rgba(255, 255, 255, 0.02) !important;
+    article.markdown-section tr:hover td,
+    .markdown-section tr:hover td {
+      background-color: #1a1a1a !important;
+    }
+    
+    /* Force dark background on all table elements */
+    table {
+      background-color: #111111 !important;
+    }
+    
+    td {
+      background-color: #111111 !important;
+      color: #e4e4e7 !important;
+    }
+    
+    th {
+      background-color: #1a1a1a !important;
+      color: #ffffff !important;
     }
 
     /* Search Bar - Match Main App */
