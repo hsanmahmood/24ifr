@@ -41,17 +41,24 @@ _AIRPORTS = [
 
 def _get(path: str):
     url = Config.RELAY_URL.rstrip("/") + path
+    current_app.logger.info(f"Fetching from relay: {url}")
     now = time.time()
     with _cache_lock:
         entry = _cache.get(path)
         if entry and now - entry[0] < _CACHE_TTL:
+            current_app.logger.info(f"Cache hit for {path}")
             return entry[1]
-    resp = _session.get(url, timeout=15)
-    resp.raise_for_status()
-    data = resp.json()
-    with _cache_lock:
-        _cache[path] = (now, data)
-    return data
+    try:
+        resp = _session.get(url, timeout=15)
+        resp.raise_for_status()
+        data = resp.json()
+        current_app.logger.info(f"Successfully fetched {path}, data length: {len(data) if isinstance(data, list) else 'N/A'}")
+        with _cache_lock:
+            _cache[path] = (now, data)
+        return data
+    except requests.RequestException as e:
+        current_app.logger.error(f"Failed to fetch {path} from relay: {e}")
+        raise
 
 
 def get_controllers():
@@ -167,8 +174,8 @@ def _cache_daemon_loop():
         for path in paths:
             try:
                 _get(path)
-            except requests.RequestException:
-                pass
+            except requests.RequestException as e:
+                current_app.logger.warning(f"Cache daemon failed to refresh {path}: {e}")
         time.sleep(4)
 
 

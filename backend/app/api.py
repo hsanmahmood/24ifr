@@ -51,7 +51,7 @@ def health_check():
     except Exception as e:
         current_app.logger.warning(f"relay health check failed: {e}")
         relay = None
-    return jsonify({"status": "ok", "relay": relay})
+    return jsonify({"status": "ok", "relay": relay, "relay_url": Config.RELAY_URL})
 
 
 def fetch_controllers():
@@ -72,8 +72,10 @@ def fetch_atis():
 
 def fetch_flight_plans():
     event = request.args.get('event', 'false').lower() in ('1', 'true', 'yes')
+    current_app.logger.info(f"fetch_flight_plans called with event={event}, RELAY_URL={Config.RELAY_URL}")
     try:
         plans = get_flight_plans(event=event)
+        current_app.logger.info(f"Successfully fetched {len(plans) if isinstance(plans, list) else 'N/A'} flight plans")
         return jsonify(plans)
     except Exception as e:
         current_app.logger.error(f"Failed to fetch flight plans from relay: {e}", exc_info=True)

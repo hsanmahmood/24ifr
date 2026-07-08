@@ -31,6 +31,7 @@ def _parse_origins(value):
 allowed_origins = [
     "http://localhost:5173",
     "http://localhost:5174",
+    "https://24ifr.hasanmahmood.org",
 ]
 
 # Add frontend URLs from environment (supports comma-separated list)

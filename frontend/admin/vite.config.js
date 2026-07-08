@@ -10,8 +10,8 @@ export default defineConfig(() => ({
     port: 5174,
     strictPort: true,
     proxy: {
-      '/api': 'http://localhost:8000',
-      '/auth': 'http://localhost:8000',
+      '/api': 'http://localhost:5000',
+      '/auth': 'http://localhost:5000',
     },
   },
 }));
