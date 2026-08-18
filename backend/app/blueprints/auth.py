@@ -1,48 +1,36 @@
-from functools import wraps
-from flask import session, redirect, request, jsonify
+from flask import Blueprint, session, redirect, request, jsonify
 from requests_oauthlib import OAuth2Session
 from postgrest import APIError
+from ..config import Config
+from ..database import supabase
+from ..security import generate_csrf_token, is_allowed_origin, require_csrf
 
-from .config import Config
-from .database import supabase
+auth_bp = Blueprint('auth', __name__)
 
 _LOCAL_REDIRECT_URIS = {
     "http://localhost:5173": "http://localhost:5173/auth/discord/callback",
     "http://localhost:5174": "http://localhost:5174/auth/discord/callback",
 }
 
-
-def _resolve_redirect_uri(origin: str) -> str:
+def resolve_redirect_uri(origin: str) -> str:
     if origin in _LOCAL_REDIRECT_URIS:
         return _LOCAL_REDIRECT_URIS[origin]
     return Config.DISCORD_REDIRECT_URI
 
-
-def require_auth(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if "user" not in session:
-            return jsonify({"error": "Authentication required"}), 401
-        return f(*args, **kwargs)
-    return decorated
-
-
-def require_admin(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if "user" not in session:
-            return jsonify({"error": "Authentication required"}), 401
-        if not session["user"].get("is_admin"):
-            return jsonify({"error": "Admin privileges required"}), 403
-        return f(*args, **kwargs)
-    return decorated
-
-
+@auth_bp.route("/auth/discord")
 def discord_login():
     if not Config.DISCORD_CLIENT_ID or not Config.DISCORD_CLIENT_SECRET:
         return jsonify({"error": "Discord OAuth not configured"}), 500
-    origin = request.args.get("origin", Config.FRONTEND_URL.split(",")[0] if Config.FRONTEND_URL else "http://localhost:5173")
-    redirect_uri = _resolve_redirect_uri(origin)
+    
+    raw_origin = request.args.get("origin")
+    default_origin = Config.FRONTEND_URL.split(",")[0] if Config.FRONTEND_URL else "http://localhost:5173"
+    
+    if raw_origin and is_allowed_origin(raw_origin, Config):
+        origin = raw_origin
+    else:
+        origin = default_origin
+    
+    redirect_uri = resolve_redirect_uri(origin)
     oauth = OAuth2Session(Config.DISCORD_CLIENT_ID, redirect_uri=redirect_uri, scope=["identify"])
     authorization_url, state = oauth.authorization_url(Config.DISCORD_AUTH_BASE_URL)
     session["oauth2_state"] = state
@@ -50,7 +38,7 @@ def discord_login():
     session["auth_origin"] = origin
     return redirect(authorization_url)
 
-
+@auth_bp.route("/auth/discord/callback")
 def discord_callback():
     redirect_uri = session.pop("oauth2_redirect_uri", Config.DISCORD_REDIRECT_URI)
     default_origin = Config.FRONTEND_URL.split(",")[0] if Config.FRONTEND_URL else "http://localhost:5173"
@@ -107,18 +95,13 @@ def discord_callback():
     session.permanent = True
     return redirect(f"{auth_origin}/?auth=success")
 
-
+@auth_bp.route("/api/auth/user")
 def get_current_user():
-    return jsonify({"authenticated": "user" in session, "user": session.get("user")})
+    generate_csrf_token()
+    return jsonify({"authenticated": "user" in session, "user": session.get("user"), "csrf_token": session.get("csrf_token")})
 
-
+@auth_bp.route("/api/auth/logout", methods=["POST"])
+@require_csrf
 def logout():
     session.clear()
     return jsonify({"success": True})
-
-
-def register(app):
-    app.add_url_rule("/auth/discord", "discord_login", discord_login)
-    app.add_url_rule("/auth/discord/callback", "discord_callback", discord_callback)
-    app.add_url_rule("/api/auth/user", "get_current_user", get_current_user)
-    app.add_url_rule("/api/auth/logout", "logout", logout, methods=["POST"])

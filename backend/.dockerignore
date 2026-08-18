@@ -11,3 +11,7 @@ venv
 .git
 .gitignore
 README.md
+*.log
+.DS_Store
+.vscode
+.idea

@@ -12,8 +12,7 @@ class Config:
         raise RuntimeError("Missing required environment variable: SESSION_SECRET")
     SESSION_COOKIE_NAME = "session_id"
     SESSION_COOKIE_HTTPONLY = True
-    
-    
+    SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_SAMESITE = "None"
     
 
@@ -23,6 +22,7 @@ class Config:
 
     SUPABASE_URL = os.environ["SUPABASE_URL"]
     SUPABASE_ANON_KEY = os.environ["SUPABASE_ANON_KEY"]
+    SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 
     DISCORD_CLIENT_ID = os.environ["DISCORD_CLIENT_ID"]
     DISCORD_CLIENT_SECRET = os.environ["DISCORD_CLIENT_SECRET"]
