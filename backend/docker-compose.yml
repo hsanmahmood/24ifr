@@ -3,20 +3,6 @@ services:
     build: .
     ports:
       - "5000:5000"
-    environment:
-      - SESSION_SECRET=${SESSION_SECRET}
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-      - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
-      - DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET}
-      - DISCORD_REDIRECT_URI=${DISCORD_REDIRECT_URI:-http://localhost:5000/auth/discord/callback}
-      - ADMIN_DISCORD_IDS=${ADMIN_DISCORD_IDS}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
-      - ADMIN_URL=${ADMIN_URL}
-      - DEV_CORS_ORIGINS=${DEV_CORS_ORIGINS}
-      - RELAY_URL=${RELAY_URL:-https://ws.awdevsoftware.org}
-      - FLASK_ENV=${FLASK_ENV:-production}
     env_file:
       - .env
       - .env.local
