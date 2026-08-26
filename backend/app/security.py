@@ -60,4 +60,5 @@ RATE_LIMITS = {
     'clearance_generate': '100 per minute',
     'clearance_track': '100 per minute',
     'feedback_submit': '100 per minute',
+    'advertisement_admin': '100 per minute',
 }

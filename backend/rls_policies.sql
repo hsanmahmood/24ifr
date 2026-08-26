@@ -200,3 +200,22 @@ ON public.feedback
 FOR ALL
 USING (auth.role() = 'service_role')
 WITH CHECK (auth.role() = 'service_role');
+
+
+-- =========================================================
+-- advertisements RLS
+-- Public can read active advertisements.
+-- =========================================================
+
+DROP POLICY IF EXISTS "Public read active advertisement" ON public.advertisements;
+CREATE POLICY "Public read active advertisement"
+ON public.advertisements
+FOR SELECT
+USING (is_active = true);
+
+DROP POLICY IF EXISTS "Service role full access advertisements" ON public.advertisements;
+CREATE POLICY "Service role full access advertisements"
+ON public.advertisements
+FOR ALL
+USING (auth.role() = 'service_role')
+WITH CHECK (auth.role() = 'service_role');

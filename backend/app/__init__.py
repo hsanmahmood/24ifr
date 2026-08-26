@@ -4,7 +4,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from .config import Config
 from .extensions import limiter
 from .security import RATE_LIMITS
-from .blueprints import auth, relay, clearances, content, admin
+from .blueprints import auth, relay, clearances, content, admin, advertisements
 
 def create_app():
     app = Flask(__name__)
@@ -72,6 +72,7 @@ def create_app():
     app.register_blueprint(clearances.clearances_bp)
     app.register_blueprint(content.content_bp)
     app.register_blueprint(admin.admin_bp)
+    app.register_blueprint(advertisements.advertisements_bp)
 
     for rule in app.url_map.iter_rules():
         if rule.endpoint == 'auth.discord_login':
@@ -82,5 +83,9 @@ def create_app():
             app.view_functions[rule.endpoint] = limiter.limit(RATE_LIMITS['clearance_track'])(app.view_functions[rule.endpoint])
         elif rule.endpoint == 'content.submit_feedback':
             app.view_functions[rule.endpoint] = limiter.limit(RATE_LIMITS['feedback_submit'])(app.view_functions[rule.endpoint])
+        elif rule.endpoint == 'advertisements.get_active_advertisement':
+            continue
+        elif rule.endpoint.startswith('advertisements.'):
+            app.view_functions[rule.endpoint] = limiter.limit(RATE_LIMITS['advertisement_admin'])(app.view_functions[rule.endpoint])
 
     return app
