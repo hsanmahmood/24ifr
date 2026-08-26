@@ -7,14 +7,9 @@ from ..security import generate_csrf_token, is_allowed_origin, require_csrf
 
 auth_bp = Blueprint('auth', __name__)
 
-_LOCAL_REDIRECT_URIS = {
-    "http://localhost:5173": "http://localhost:5173/auth/discord/callback",
-    "http://localhost:5174": "http://localhost:5174/auth/discord/callback",
-}
-
 def resolve_redirect_uri(origin: str) -> str:
-    if origin in _LOCAL_REDIRECT_URIS:
-        return _LOCAL_REDIRECT_URIS[origin]
+    if origin and origin.startswith("http://localhost"):
+        return f"{origin}/auth/discord/callback"
     return Config.DISCORD_REDIRECT_URI
 
 @auth_bp.route("/auth/discord")
