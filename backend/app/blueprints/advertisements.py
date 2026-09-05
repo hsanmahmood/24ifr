@@ -143,7 +143,7 @@ def update_advertisement(id):
 @require_csrf
 def delete_advertisement(id):
     try:
-        check_resp = supabase.from_('advertisements').select('is_active').eq('id', id).execute()
+        check_resp = supabase.from_('advertisements').select('*').eq('id', id).execute()
         if not check_resp.data:
             return jsonify({"error": "Advertisement not found"}), 404
         if check_resp.data[0].get('is_active'):
