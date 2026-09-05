@@ -2,14 +2,14 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import AtcSettings from '../components/AtcSettings';
 import FlightPlanSection from '../components/MainPage/FlightPlanSection';
 import ClearanceDisplay from '../components/MainPage/ClearanceDisplay';
+import AdvertisementWidget from '../components/AdvertisementWidget';
 import { useFlightData } from '../hooks/useFlightData';
-import { useSettings } from '../context/SettingsContext';
 import * as api from '../services/api';
 import { buildClearanceText, normalizeSettings } from '../services/clearance';
+import { useNotification } from '../context/NotificationContext';
 
 const MainPage = ({ onOpenLegalPopup, onOpenAboutPopup, onOpenSupportPopup }) => {
     const { flightPlans, controllers, atis, selectedFlightPlan, loading, error, selectFlightPlan, refreshData } = useFlightData();
-    const { settings } = useSettings();
     
     const [generatedClearance, setGeneratedClearance] = useState(null);
     const [generationLoading, setGenerationLoading] = useState(false);
@@ -24,8 +24,15 @@ const MainPage = ({ onOpenLegalPopup, onOpenAboutPopup, onOpenSupportPopup }) =>
     const PLANS_PER_PAGE = 25;
 
     const filteredPlans = useMemo(() => {
-        if (!departureAirport) return flightPlans;
-        return flightPlans.filter(p => p.departing?.toUpperCase() === departureAirport.toUpperCase());
+        const visiblePlans = !departureAirport
+            ? flightPlans
+            : flightPlans.filter(p => p.departing?.toUpperCase() === departureAirport.toUpperCase());
+
+        return [...visiblePlans].sort((a, b) => {
+            const departureComparison = (a.departing || '').localeCompare(b.departing || '');
+            if (departureComparison !== 0) return departureComparison;
+            return (a.callsign || '').localeCompare(b.callsign || '');
+        });
     }, [flightPlans, departureAirport]);
 
     const totalPages = Math.ceil(filteredPlans.length / PLANS_PER_PAGE);
@@ -34,7 +41,28 @@ const MainPage = ({ onOpenLegalPopup, onOpenAboutPopup, onOpenSupportPopup }) =>
         return filteredPlans.slice(start, start + PLANS_PER_PAGE);
     }, [filteredPlans, currentPage]);
 
+    useEffect(() => {
+        if (currentPage > totalPages && totalPages > 0) {
+            setCurrentPage(totalPages);
+        }
+    }, [currentPage, totalPages]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [departureAirport]);
+
+    useEffect(() => {
+        if (filteredPlans.length === 0) return;
+        const currentSelection = selectedFlightPlan?.callsign;
+        const stillVisible = currentSelection && filteredPlans.some((plan) => plan.callsign === currentSelection);
+        if (!stillVisible) {
+            selectFlightPlan(filteredPlans[0]);
+        }
+    }, [filteredPlans, selectedFlightPlan, selectFlightPlan]);
+
     const canGenerateClearance = Boolean(selectedFlightPlan && departureAirport);
+
+    const { notify } = useNotification();
 
     const handleGenerateClearance = async (formSettings) => {
         if (!canGenerateClearance) return;
@@ -42,7 +70,6 @@ const MainPage = ({ onOpenLegalPopup, onOpenAboutPopup, onOpenSupportPopup }) =>
         setGenerationLoading(true);
         try {
             const savedSettings = api.loadUserSettings() || {};
-            // Allow generation even if user hasn't configured settings; defaults will be applied
             const advancedSettings = normalizeSettings(savedSettings);
             const clearance = buildClearanceText({
                 flightPlan: selectedFlightPlan,
@@ -64,16 +91,15 @@ const MainPage = ({ onOpenLegalPopup, onOpenAboutPopup, onOpenSupportPopup }) =>
 
             try {
                 await api.trackClearanceGeneration(clearanceData);
-                console.log('Clearance generated and tracked');
-            } catch (err) {
-                console.error('Failed to track clearance:', err);
+                notify.success('Clearance generated');
+            } catch (_) {
+                notify.error('Failed to save clearance');
             }
         } finally {
             setGenerationLoading(false);
         }
     };
 
-    // Auto-scroll to clearance when generated
     useEffect(() => {
         if (generatedClearance && clearanceRef.current) {
             setTimeout(() => {
@@ -116,6 +142,7 @@ const MainPage = ({ onOpenLegalPopup, onOpenAboutPopup, onOpenSupportPopup }) =>
                         onRefresh={handleRefresh}
                         refreshLoading={refreshLoading}
                     />
+
                     <ClearanceDisplay 
                         ref={clearanceRef}
                         clearance={generatedClearance} 
@@ -146,7 +173,11 @@ const MainPage = ({ onOpenLegalPopup, onOpenAboutPopup, onOpenSupportPopup }) =>
                             generationLoading={generationLoading}
                             onAirportChange={setDepartureAirport}
                             canGenerate={canGenerateClearance}
+                            selectedFlightPlan={selectedFlightPlan}
                         />
+                    </div>
+                    <div className="mt-4">
+                        <AdvertisementWidget />
                     </div>
                     <div className="mt-4 flex items-center justify-center gap-3 flex-wrap">
                         <button

@@ -1,0 +1,61 @@
+site_name: 24IFR Documentation
+site_url: https://hsanmahmood.github.io/24ifr/
+site_description: Documentation for 24IFR - ATC IFR Clearance Generator
+site_author: Hasan Mahmood
+
+# Navigation
+nav:
+  - Home: index.md
+  - Complete Guide: guide.md
+
+# Theme configuration
+theme:
+  name: material
+  language: en
+  palette:
+    # Dark mode (default)
+    - scheme: slate
+      primary: custom
+      accent: yellow
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+    # Light mode
+    - scheme: default
+      primary: custom
+      accent: yellow
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+  features:
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+  font:
+    text: Inter
+    code: JetBrains Mono
+
+# Plugins
+plugins:
+  - search:
+      lang: en
+
+# Extensions
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+
+# Custom CSS
+extra_css:
+  - stylesheets/extra.css

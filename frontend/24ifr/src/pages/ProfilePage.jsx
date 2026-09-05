@@ -87,8 +87,7 @@ const ProfilePage = () => {
                 try {
                     const data = await loadUserClearances();
                     setClearances(Array.isArray(data) ? data : (data?.clearances || []));
-                } catch (error) {
-                    console.error("Failed to load clearances:", error);
+                } catch (_) {
                     notify.error('Failed to load your clearances.');
                 } finally {
                     setLoading(false);
@@ -116,7 +115,7 @@ const ProfilePage = () => {
                         src={user.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}
                         alt={user.username}
                         className="w-24 h-24 rounded-full border-4 border-zinc-800 shadow-xl"
-                        onError={(e) => { e.target.src = 'https://cdn.discordapp.com/embed/avatars/0.png' }}
+                        onError={(e) => { e.target.src = 'https://cdn.discordapp.com/embed/avatars/0.png'; }}
                     />
                     <div className="absolute bottom-0 right-0 w-6 h-6 bg-green-500 rounded-full border-4 border-surface-dark"></div>
                 </div>

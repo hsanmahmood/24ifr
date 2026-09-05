@@ -1,56 +1,56 @@
-import { useState, useEffect, useCallback } from 'react';
-import * as api from '../services/api';
+import { useState, useEffect, useCallback, useRef } from "react";
+import { loadFlightPlans, loadControllers, loadAtis } from "../services/api";
 
 export const useFlightData = () => {
-    const [data, setData] = useState({
-        plans: [],
-        controllers: [],
-        atis: [],
-        selected: null,
-        loading: true,
-        error: null
-    });
+    const [flightPlans, setFlightPlans] = useState([]);
+    const [controllers, setControllers] = useState([]);
+    const [atis, setAtis] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const selectedRef = useRef(null);
+    const [selectedFlightPlan, setSelectedFlightPlan] = useState(null);
 
-    const refresh = useCallback(async () => {
+    const refresh = useCallback(async (isBackground = false) => {
+        if (!isBackground) setLoading(true);
         try {
-            const [p, c, a] = await Promise.all([
-                api.loadFlightPlans(),
-                api.loadControllers(),
-                api.loadAtis()
+            const [plans, ctrls, atisData] = await Promise.all([
+                loadFlightPlans(),
+                loadControllers(),
+                loadAtis(),
             ]);
-
-            setData(prev => {
-                const stillExists = p.find(plan => plan.callsign === prev.selected?.callsign);
-                return {
-                    plans: p,
-                    controllers: c,
-                    atis: a,
-                    selected: stillExists || p[0] || null,
-                    loading: false,
-                    error: null
-                };
-            });
+            setFlightPlans(plans);
+            setControllers(ctrls);
+            setAtis(atisData);
+            const current = selectedRef.current;
+            const stillExists = current
+                ? plans.find(p => p.callsign === current.callsign)
+                : null;
+            if (!current) {
+                const next = plans[0] || null;
+                selectedRef.current = next;
+                setSelectedFlightPlan(next);
+            } else if (stillExists) {
+                selectedRef.current = stillExists;
+                setSelectedFlightPlan(stillExists);
+            }
+            setError(null);
         } catch (err) {
-            setData(prev => ({ ...prev, loading: false, error: err.message }));
+            setError(err.message);
+        } finally {
+            if (!isBackground) setLoading(false);
         }
     }, []);
 
     useEffect(() => {
-        refresh();
-        const interval = setInterval(refresh, 45000);
+        refresh(false);
+        const interval = setInterval(() => refresh(true), 45000);
         return () => clearInterval(interval);
     }, [refresh]);
 
-    const selectPlan = (plan) => setData(prev => ({ ...prev, selected: plan }));
+    const selectFlightPlan = useCallback((plan) => {
+        selectedRef.current = plan;
+        setSelectedFlightPlan(plan);
+    }, []);
 
-    return {
-        flightPlans: data.plans,
-        controllers: data.controllers,
-        atis: data.atis,
-        selectedFlightPlan: data.selected,
-        loading: data.loading,
-        error: data.error,
-        selectFlightPlan: selectPlan,
-        refreshData: refresh
-    };
+    return { flightPlans, controllers, atis, selectedFlightPlan, loading, error, selectFlightPlan, refreshData: () => refresh(false) };
 };

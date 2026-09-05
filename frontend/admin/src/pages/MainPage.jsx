@@ -25,7 +25,6 @@ const MainPage = ({ onOpenLegalPopup }) => {
 
     const normalizeCode = (value) => (value || '').toString().trim().toUpperCase();
     const savedSettings = api.loadUserSettings() || {};
-    // Allow generation even if user settings are not configured; defaults will be applied
     const canGenerateClearance = Boolean(selectedAirport);
     const filteredFlightPlans = useMemo(() => (
         selectedAirport
@@ -68,8 +67,8 @@ const MainPage = ({ onOpenLegalPopup }) => {
             try {
                 const result = await api.loadAdminDocuments();
                 setDocuments(result.documents || []);
-            } catch (error) {
-                console.error('Failed to load admin documents for popups:', error);
+            } catch (err) {
+                notify.error('Failed to load admin documents for popups.');
                 setDocuments([]);
             }
         };
@@ -77,14 +76,7 @@ const MainPage = ({ onOpenLegalPopup }) => {
         loadDocs();
     }, []);
 
-    const generateSquawk = () => {
-        const squawkRanges = { min: 1000, max: 7777, exclude: [7500, 7600, 7700] };
-        const { min, max, exclude } = squawkRanges;
-        let code;
-        do {
-            code = Math.floor(min + Math.random() * (max - min + 1));
-        } while (exclude.includes(code) || /[89]/.test(code.toString()));
-    }
+    
 
     const handleGenerateClearance = async (settings) => {
         const savedSettings = api.loadUserSettings();
@@ -93,9 +85,6 @@ const MainPage = ({ onOpenLegalPopup }) => {
                 notify.error('Please select a departure airport first.');
                 return;
             }
-        // If user settings are missing, proceed using defaults
-        // const advancedSettings = normalizeSettings(savedSettings);
-
         if (!selectedFlightPlan) {
             notify.error('Please select a flight plan first.');
             return;
@@ -125,8 +114,7 @@ const MainPage = ({ onOpenLegalPopup }) => {
         try {
             await api.trackClearanceGeneration(clearanceData);
             notify.success('Clearance generated');
-        } catch (error) {
-            console.error("Failed to track clearance:", error);
+        } catch (_) {
             notify.error('Failed to save clearance');
         }
     };
@@ -177,6 +165,7 @@ const MainPage = ({ onOpenLegalPopup }) => {
                     onGenerateClearance={handleGenerateClearance}
                     onAirportChange={setSelectedAirport}
                     canGenerate={canGenerateClearance}
+                    selectedFlightPlan={selectedFlightPlan}
                 />
                 <div className="mt-3 flex justify-center">
                     <div className="flex items-center gap-3">

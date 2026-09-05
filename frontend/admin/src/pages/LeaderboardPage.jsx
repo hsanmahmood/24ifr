@@ -69,8 +69,7 @@ const LeaderboardPage = () => {
                     leaderboard: Array.isArray(result?.leaderboard) ? result.leaderboard : [],
                     total_clearances: Number(result?.total_clearances) || 0,
                 });
-            } catch (err) {
-                console.error("Failed to load leaderboard:", err);
+            } catch (_) {
                 setError("Failed to load leaderboard data.");
             } finally {
                 setLoading(false);
@@ -130,7 +129,7 @@ const LeaderboardPage = () => {
                                             src={u.avatar}
                                             alt={u.username}
                                             className="w-9 h-9 rounded-full border border-zinc-700 flex-shrink-0"
-                                            onError={(e) => { e.target.src = 'https://cdn.discordapp.com/embed/avatars/0.png' }}
+                                            onError={(e) => { e.target.src = 'https://cdn.discordapp.com/embed/avatars/0.png'; }}
                                         />
                                         <div className="min-w-0">
                                             <span className="block font-medium text-white truncate">{u.username}</span>

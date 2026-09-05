@@ -1,4 +1,9 @@
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+
+let _apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? '';
+if (import.meta.env.DEV && !_apiBaseUrl) {
+    _apiBaseUrl = '';
+}
+const API_BASE_URL = String(_apiBaseUrl).replace(/\/$/, '');
 const USER_SETTINGS_KEY = 'atc24_user_settings';
 
 const handleResponse = async (response) => {
@@ -95,3 +100,27 @@ export const loadPublicDocuments = async () => {
         return [];
     }
 };
+
+export const getActiveFeedbackPrompt = async () => {
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/feedback/active`);
+    return handleResponse(response);
+};
+
+export const submitFeedback = async (payload) => {
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+};
+
+export const getActiveAdvertisement = async () => {
+    try {
+        const response = await fetchWithAuth(`${API_BASE_URL}/api/advertisement/active`);
+        return handleResponse(response);
+    } catch (e) {
+        return null;
+    }
+};
+

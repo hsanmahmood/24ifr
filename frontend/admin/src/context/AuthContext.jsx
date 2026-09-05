@@ -1,60 +1,41 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
-import * as api from '../services/api';
+import { createContext, useContext, useState, useEffect } from "react";
+import { checkAuthStatus, logout as apiLogout } from "../services/api";
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [csrfToken, setCsrfToken] = useState(null);
 
     useEffect(() => {
-        const checkStatus = async () => {
-            try {
-                const data = await api.checkAuthStatus();
-                if (data.authenticated) {
-                    setUser(data.user);
-                    setIsAuthenticated(true);
-                } else {
-                    setUser(null);
-                    setIsAuthenticated(false);
-                }
-            } catch (error) {
-                console.error("Failed to check auth status:", error);
-                setUser(null);
-                setIsAuthenticated(false);
-            } finally {
-                setLoading(false);
-            }
-        };
-        checkStatus();
+        checkAuthStatus()
+            .then((data) => {
+                setUser(data.authenticated ? data.user : null);
+                setCsrfToken(data.csrf_token || null);
+            })
+            .catch(() => setUser(null))
+            .finally(() => setLoading(false));
     }, []);
 
-    const login = () => {
-        api.loginWithDiscord();
-    };
-
     const logout = async () => {
-        await api.logout();
+        await apiLogout(csrfToken).catch(() => {});
         setUser(null);
-        setIsAuthenticated(false);
-    };
-
-    const value = {
-        user,
-        isAuthenticated,
-        loading,
-        login,
-        logout,
+        setCsrfToken(null);
     };
 
     return (
-        <AuthContext.Provider value={value}>
+        <AuthContext.Provider value={{
+            user,
+            loading,
+            isAuthenticated: !!user,
+            isAdmin: !!user?.is_admin,
+            csrfToken,
+            logout,
+        }}>
             {children}
         </AuthContext.Provider>
     );
 };
 
-export const useAuth = () => {
-    return useContext(AuthContext);
-};
+export const useAuth = () => useContext(AuthContext);

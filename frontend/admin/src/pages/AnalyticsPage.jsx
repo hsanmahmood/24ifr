@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
-import { loadAdminAnalyticsOverview } from '../services/api';
+import { loadAdminAnalyticsOverview, pushFeedbackPrompt, loadAdminDailyClearances } from '../services/api';
 import {
     ResponsiveContainer,
     BarChart,
@@ -145,6 +145,8 @@ const AnalyticsPage = () => {
 
     const [loading, setLoading] = useState(true);
     const [overview, setOverview] = useState({ metrics: {}, charts: {} });
+    const [feedbackMessage, setFeedbackMessage] = useState('');
+    const [dailyClearances, setDailyClearances] = useState([]);
 
     useEffect(() => {
         const fetchAnalytics = async () => {
@@ -157,8 +159,7 @@ const AnalyticsPage = () => {
             try {
                 const response = await loadAdminAnalyticsOverview();
                 setOverview(response || { metrics: {}, charts: {} });
-            } catch (error) {
-                console.error('Failed to load analytics data:', error);
+            } catch (err) {
                 notify.error('Failed to load analytics data.');
                 setOverview({ metrics: {}, charts: {} });
             } finally {
@@ -168,6 +169,20 @@ const AnalyticsPage = () => {
 
         fetchAnalytics();
     }, [user, notify]);
+
+    useEffect(() => {
+        const fetchDailyClearances = async () => {
+            if (!user) return;
+            try {
+                const data = await loadAdminDailyClearances(14);
+                setDailyClearances(data || []);
+            } catch (err) {
+                console.error('Failed to load daily clearances:', err);
+            }
+        };
+
+        fetchDailyClearances();
+    }, [user]);
 
     const clearancesSeries = useMemo(
         () => fillDailySeries(overview?.charts?.clearances_per_day || [], false),

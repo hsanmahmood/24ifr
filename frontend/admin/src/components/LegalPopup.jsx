@@ -1,10 +1,22 @@
-import React from 'react';
-import { renderMarkdown } from './renderMarkdown';
+import React, { useEffect, useState } from 'react';
+
+export const LEGAL_POPUP_STORAGE_KEY = '24ifr_legal_popup_dismissed_v1';
 
 const LegalPopup = ({ isOpen, onClose, content = '' }) => {
-    if (!isOpen) return null;
+    const [displayContent, setDisplayContent] = useState(content);
+    
+    useEffect(() => {
+        setDisplayContent(content);
+    }, [content]);
 
-    const html = renderMarkdown(content || '');
+    if (!isOpen) {
+        return null;
+    }
+
+    const handleClose = () => {
+        window.localStorage.setItem(LEGAL_POPUP_STORAGE_KEY, 'true');
+        onClose?.();
+    };
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm">
@@ -15,14 +27,16 @@ const LegalPopup = ({ isOpen, onClose, content = '' }) => {
                         <h2 className="mt-1 text-xl font-bold text-white">Privacy & Terms</h2>
                     </div>
                 </div>
-                <div className="px-5 py-5 text-sm leading-7 text-zinc-300">
-                    <div className="doc-markdown max-h-[60vh] overflow-y-auto custom-scrollbar rounded-lg border border-zinc-800 bg-[#050505] px-4 py-4">
-                        <div dangerouslySetInnerHTML={{ __html: html || '<p class="text-zinc-400">Privacy & Terms content not available.</p>' }} />
-                    </div>
+                <div className="px-5 py-5 text-sm leading-7 text-zinc-300 prose prose-invert max-w-none">
+                    {displayContent ? (
+                        <div dangerouslySetInnerHTML={{ __html: displayContent.replace(/\n/g, '<br />') }} />
+                    ) : (
+                        <p className="text-zinc-400">We only use your account details and generated clearance activity to run the app, keep your session working, and improve the service. We do not sell personal data. Use this app responsibly. Generated clearances are for simulation and training only.</p>
+                    )}
                 </div>
                 <div className="flex justify-end border-t border-border-dark px-5 py-4">
                     <button
-                        onClick={onClose}
+                        onClick={handleClose}
                         className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-black transition-colors hover:brightness-95"
                     >
                         I Understand

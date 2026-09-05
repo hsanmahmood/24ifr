@@ -1,0 +1,145 @@
+/* Custom colors matching 24IFR main application */
+:root {
+  /* Primary color - Yellow accent */
+  --md-primary-fg-color: #FACC15;
+  --md-primary-fg-color--light: #FEF08A;
+  --md-primary-fg-color--dark: #b3920e;
+  --md-primary-bg-color: #000000;
+  --md-primary-bg-color--light: #09090b;
+  
+  /* Accent color */
+  --md-accent-fg-color: #FACC15;
+  --md-accent-fg-color--transparent: rgba(250, 204, 21, 0.1);
+  --md-accent-bg-color: #000000;
+  --md-accent-bg-color--light: #09090b;
+}
+
+/* Dark mode specific colors */
+[data-md-color-scheme="slate"] {
+  --md-default-bg-color: #000000;
+  --md-default-fg-color: #e4e4e7;
+  --md-default-fg-color--light: #a1a1aa;
+  --md-default-fg-color--lighter: #71717a;
+  
+  --md-code-bg-color: #111111;
+  --md-code-fg-color: #e4e4e7;
+  
+  --md-typeset-color: #e4e4e7;
+  --md-typeset-a-color: #FACC15;
+  
+  --md-admonition-bg-color: #111111;
+  --md-admonition-fg-color: #e4e4e7;
+  
+  --md-table-row-color: #111111;
+  --md-table-row-hover-color: #1a1a1a;
+}
+
+/* Light mode specific colors */
+[data-md-color-scheme="default"] {
+  --md-default-bg-color: #ffffff;
+  --md-default-fg-color: #1f2937;
+  --md-default-fg-color--light: #4b5563;
+  --md-default-fg-color--lighter: #9ca3af;
+  
+  --md-code-bg-color: #f3f4f6;
+  --md-code-fg-color: #1f2937;
+  
+  --md-typeset-color: #1f2937;
+  --md-typeset-a-color: #FACC15;
+  
+  --md-admonition-bg-color: #f3f4f6;
+  --md-admonition-fg-color: #1f2937;
+  
+  --md-table-row-color: #ffffff;
+  --md-table-row-hover-color: #f9fafb;
+}
+
+/* Custom font adjustments */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+[data-md-color-scheme="slate"] .md-typeset {
+  font-family: 'Inter', sans-serif;
+}
+
+[data-md-color-scheme="slate"] code,
+[data-md-color-scheme="slate"] pre {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Custom scrollbar for dark mode */
+[data-md-color-scheme="slate"] ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+[data-md-color-scheme="slate"] ::-webkit-scrollbar-track {
+  background: #09090b;
+}
+
+[data-md-color-scheme="slate"] ::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 3px;
+}
+
+[data-md-color-scheme="slate"] ::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
+
+/* Table styling improvements */
+[data-md-color-scheme="slate"] .md-typeset table {
+  background-color: #111111;
+  border: 1px solid #27272a;
+}
+
+[data-md-color-scheme="slate"] .md-typeset th {
+  background-color: #1a1a1a;
+  border-color: #27272a;
+  color: #ffffff;
+}
+
+[data-md-color-scheme="slate"] .md-typeset td {
+  border-color: #18181b;
+  color: #e4e4e7;
+}
+
+[data-md-color-scheme="slate"] .md-typeset tr:hover {
+  background-color: #1a1a1a;
+}
+
+/* Code block styling */
+[data-md-color-scheme="slate"] .md-typeset code {
+  background-color: #18181b;
+  color: #e4e4e7;
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+}
+
+[data-md-color-scheme="slate"] .md-typeset pre {
+  background-color: #111111;
+  border: 1px solid #18181b;
+  border-radius: 6px;
+}
+
+[data-md-color-scheme="slate"] .md-typeset pre > code {
+  background-color: transparent;
+  border: none;
+  padding: 0;
+}
+
+/* Blockquote styling */
+[data-md-color-scheme="slate"] .md-typeset blockquote {
+  border-left-color: #FACC15;
+  background-color: #111111;
+  color: #d4d4d8;
+}
+
+/* Admonition styling */
+[data-md-color-scheme="slate"] .md-typeset .admonition {
+  background-color: #111111;
+  border: 1px solid #27272a;
+}
+
+[data-md-color-scheme="slate"] .md-typeset .admonition-title {
+  background-color: #1a1a1a;
+  color: #ffffff;
+}

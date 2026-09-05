@@ -1,7 +1,7 @@
 {
   "name": "24ifr-admin",
   "private": true,
-  "version": "2.5.0",
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,7 +13,7 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.10.1",
-    "recharts": "^2.15.4"
+    "recharts": "^3.9.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

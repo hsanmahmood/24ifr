@@ -1,4 +1,9 @@
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+let _apiBaseAdmin = import.meta.env.VITE_API_BASE_URL ?? '';
+
+if (import.meta.env.DEV && !_apiBaseAdmin) {
+    _apiBaseAdmin = '';
+}
+export const API_BASE_URL = String(_apiBaseAdmin).replace(/\/$/, '');
 const USER_SETTINGS_KEY = 'atc24_user_settings';
 
 const handleResponse = async (response) => {
@@ -11,6 +16,14 @@ const handleResponse = async (response) => {
 
 export const fetchWithCredentials = (url, options = {}) => {
     return fetch(url, { ...options, credentials: 'include' });
+};
+
+export const fetchWithCSRF = (url, options = {}, csrfToken) => {
+    const headers = options.headers || {};
+    if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken;
+    }
+    return fetchWithCredentials(url, { ...options, headers, credentials: 'include' });
 };
 
 export const loadFlightPlans = async () => {
@@ -57,11 +70,11 @@ export const loginWithDiscord = () => {
     window.location.href = `${API_BASE_URL}/auth/discord?origin=${encodeURIComponent(origin)}`;
 };
 
-export const logout = async () => {
-    const response = await fetchWithCredentials(`${API_BASE_URL}/api/auth/logout`, {
+export const logout = async (csrfToken) => {
+    const response = await fetchWithCSRF(`${API_BASE_URL}/api/auth/logout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-    });
+    }, csrfToken);
     return handleResponse(response);
 };
 
@@ -87,12 +100,12 @@ export const loadAdminDocuments = async () => {
     return handleResponse(response);
 };
 
-export const saveAdminDocument = async (docKey, payload) => {
-    const response = await fetchWithCredentials(`${API_BASE_URL}/api/admin/documents/${docKey}`, {
+export const saveAdminDocument = async (docKey, payload, csrfToken) => {
+    const response = await fetchWithCSRF(`${API_BASE_URL}/api/admin/documents/${docKey}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-    });
+    }, csrfToken);
     return handleResponse(response);
 };
 
@@ -128,5 +141,62 @@ export const loadAdminUserGrowth = async (days = 30) => {
 
 export const loadAdminUserGrowthAll = async () => {
     const response = await fetchWithCredentials(`${API_BASE_URL}/api/admin/user-growth?all=true`);
+    return handleResponse(response);
+};
+
+export const loadAdminFeedback = (page = 1) =>
+    fetchWithCredentials(`${API_BASE_URL}/api/admin/feedback?page=${page}&per_page=25`).then(handleResponse);
+
+export const pushFeedbackPrompt = (message, csrfToken) =>
+    fetchWithCSRF(`${API_BASE_URL}/api/admin/feedback/push`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message }),
+    }, csrfToken).then(handleResponse);
+
+export const loadAdvertisements = async () => {
+    const response = await fetchWithCredentials(`${API_BASE_URL}/api/admin/advertisements`);
+    return handleResponse(response);
+};
+
+export const createAdvertisement = async (payload, csrfToken) => {
+    const response = await fetchWithCSRF(`${API_BASE_URL}/api/admin/advertisements`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    }, csrfToken);
+    return handleResponse(response);
+};
+
+export const updateAdvertisement = async (id, payload, csrfToken) => {
+    const response = await fetchWithCSRF(`${API_BASE_URL}/api/admin/advertisements/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    }, csrfToken);
+    return handleResponse(response);
+};
+
+export const deleteAdvertisement = async (id, csrfToken) => {
+    const response = await fetchWithCSRF(`${API_BASE_URL}/api/admin/advertisements/${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+    }, csrfToken);
+    return handleResponse(response);
+};
+
+export const activateAdvertisement = async (id, csrfToken) => {
+    const response = await fetchWithCSRF(`${API_BASE_URL}/api/admin/advertisements/${id}/activate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+    }, csrfToken);
+    return handleResponse(response);
+};
+
+export const deactivateAdvertisement = async (id, csrfToken) => {
+    const response = await fetchWithCSRF(`${API_BASE_URL}/api/admin/advertisements/${id}/deactivate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+    }, csrfToken);
     return handleResponse(response);
 };

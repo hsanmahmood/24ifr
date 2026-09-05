@@ -3,7 +3,7 @@ import Combobox from './Combobox';
 import { loadUserSettings } from '../services/api';
 import { generateAirports } from '../data/airports';
 
-const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, onAirportChange, canGenerate = true }) => {
+const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, onAirportChange, canGenerate = true, selectedFlightPlan }) => {
     const normalizeCode = (value) => (value || '').toString().trim().toUpperCase();
     const canonicalStationCode = (value) => normalizeCode(value).replace(/_CTR$/, '');
 
@@ -13,12 +13,13 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, onAirpor
     const [departureAirport, setDepartureAirport] = useState('');
     const [runway, setRunway] = useState(() => savedSettings.defaultRunway || '');
     const [atisLetter, setAtisLetter] = useState(() => savedSettings.defaultAtisLetter || '');
+    const [qnh, setQnh] = useState(() => String(savedSettings.defaultQnh || ''));
 
     const [routing, setRouting] = useState(() => savedSettings.defaultRouting || 'As Filed');
     const [routingDetails, setRoutingDetails] = useState(() => savedSettings.defaultRoutingDetails || '');
     const [initialClimb, setInitialClimb] = useState(() => savedSettings.defaultInitialClimb || '');
 
-    const [autoFilled, setAutoFilled] = useState({ runway: false, atis: false });
+    const [autoFilled, setAutoFilled] = useState({ runway: false, atis: false, qnh: false });
 
     const [availableStations, setAvailableStations] = useState([]);
     const [availableAirports, setAvailableAirports] = useState([]);
@@ -90,7 +91,6 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, onAirpor
     }, [controllers]);
 
     useEffect(() => {
-        // Build visible airport list from internal DB but only include airports with online stations.
         const airportsDb = generateAirports();
         const onlineCodes = new Set(availableStations.map(s => normalizeCode(s.airport)).filter(Boolean));
 
@@ -98,12 +98,10 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, onAirpor
             .filter(a => onlineCodes.has(normalizeCode(a.code)))
             .sort((a, b) => a.friendlyName.localeCompare(b.friendlyName));
 
-        // Only include airports present in internal DB and currently online.
         setAvailableAirports(visible);
     }, [availableStations]);
 
     const isValidICAO = (airport) => {
-        // ICAO codes are 4 uppercase letters, starting with a continent/region code
         return /^[A-Z]{4}$/.test(normalizeCode(airport));
     };
 
@@ -119,22 +117,20 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, onAirpor
     };
 
     const handleAirportChange = (airport) => {
-        // Only allow valid ICAO codes
         if (airport && !isValidICAO(airport)) {
             return;
         }
         setDepartureAirport(airport);
         onAirportChange?.(airport || '');
         setStation('');
-        setAutoFilled({ runway: false, atis: false });
+        setAutoFilled({ runway: false, atis: false, qnh: false });
+        setQnh('');
         
         if (!airport) return;
 
-        // Get all stations for this airport
         const airportStations = availableStations.filter(s => normalizeCode(s.airport) === normalizeCode(airport));
         
         if (airportStations.length > 0) {
-            // Sort by rank and auto-select the lowest rank (most common for startup)
             const sortedByRank = airportStations.sort((a, b) => 
                 getStationRank(a.value) - getStationRank(b.value)
             );
@@ -172,8 +168,6 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, onAirpor
         );
 
         if (selectedAtis) {
-            let newAutoFilled = { ...autoFilled };
-
             let letter = selectedAtis.letter || selectedAtis.atis_code;
             const content = selectedAtis.content || selectedAtis.text_atis || '';
 
@@ -184,16 +178,23 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, onAirpor
 
             if (letter) {
                 setAtisLetter(letter);
-                newAutoFilled.atis = true;
+                setAutoFilled(prev => ({ ...prev, atis: true }));
             }
 
             const runwayMatch = content.match(/DEP RWY\s*(\w+)/i) || content.match(/RWY\s*(\d{2}[LCR]?)/i);
             if (runwayMatch) {
                 setRunway(runwayMatch[1]);
-                newAutoFilled.runway = true;
+                setAutoFilled(prev => ({ ...prev, runway: true }));
             }
 
-            setAutoFilled(newAutoFilled);
+            const qnhMatch = content.match(/\bQ(\d{4})\b/) || content.match(/\bA(\d{4})\b/);
+            const nextQnh = qnhMatch ? qnhMatch[1] : String(selectedAtis.qnh || '');
+            setQnh(nextQnh);
+            if (qnhMatch) {
+                setAutoFilled(prev => ({ ...prev, qnh: true }));
+            }
+        } else {
+            setQnh('');
         }
     };
 
@@ -202,14 +203,14 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, onAirpor
         if (!canGenerate) {
             return;
         }
-        onGenerateClearance({ station, runway, routing, routingDetails, initialClimb, atisLetter });
+        onGenerateClearance({ station, runway, routing, routingDetails, initialClimb, atisLetter, qnh });
     };
 
     const routingOptions = [
         { label: 'Use original filed route', value: 'As Filed' },
         { label: 'SID', value: 'SID' },
         { label: 'Radar Vectors', value: 'VECTORS' },
-        { label: 'Direct waypoint', value: 'DIRECT' }
+        { label: 'GPS Direct', value: 'GPS Direct' }
     ];
 
     const atisOptions = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)).map(l => ({ label: `Info ${l}`, value: l }));
@@ -246,30 +247,26 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, onAirpor
             <form className="space-y-6" onSubmit={handleSubmit}>
                 <div className="space-y-4">
                     <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Departure Airport</label>
+                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Island</label>
                         <div className="relative">
                             <Combobox
-                                options={availableAirports
-                                    .map((airport) => ({ airport, online: getStationCount(airport.code) }))
-                                    .filter(a => a.online > 0)
-                                    .map(({ airport, online }) => {
-                                            // Display only the first word of the friendly name, except for Greater Rockford (IRFD)
-                                            const baseName = airport.friendlyName || airport.code;
-                                            let displayName = baseName.split(/\s+/)[0];
-                                            if (airport.code === 'IRFD' || /Greater\s+Rockford/i.test(baseName)) {
-                                                displayName = baseName; // exception
-                                            }
-                                            return {
-                                                label: displayName,
-                                                value: airport.code,
-                                                subtext: `${online} online`,
-                                            };
-                                        })}
+                                label="Island"
+                                options={availableAirports.map((a) => {
+                                    const baseName = a.friendlyName || a.code;
+                                    let displayName = a.island || baseName.split(/\s+/)[0];
+                                    if (a.code === 'IRFD' || /Greater\s+Rockford/i.test(baseName)) {
+                                        displayName = baseName;
+                                    }
+                                    return {
+                                        label: displayName,
+                                        value: a.code,
+                                        subtext: `${getStationCount(a.code)} online`,
+                                    };
+                                })}
                                 value={departureAirport}
                                 onChange={handleAirportChange}
-                                placeholder="Select Airport First"
+                                placeholder="Select Island First"
                             />
-                            {/* selected airport badge is shown inside Combobox selected area */}
                         </div>
                     </div>
 
@@ -321,6 +318,11 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, onAirpor
                                 }}
                                 placeholder="Select ATIS"
                             />
+                            {qnh && (
+                                <p className="text-[11px] text-zinc-500 font-mono mt-1">
+                                    QNH: {qnh}
+                                </p>
+                            )}
                         </div>
                     </div>
 
@@ -332,8 +334,13 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, onAirpor
                             onChange={handleRoutingChange}
                             placeholder="Select Routing"
                         />
+                        {selectedFlightPlan?.route && (
+                            <p className="text-[11px] text-zinc-500 font-mono">
+                                Filed: {selectedFlightPlan.route}
+                            </p>
+                        )}
 
-                        {(routing === 'SID' || routing === 'DIRECT') && (
+                        {(routing === 'SID' || routing === 'GPS Direct') && (
                             <input
                                 type="text"
                                 value={routingDetails}
