@@ -20,6 +20,10 @@ const Icon = ({ name, className = '' }) => {
                     <path d="M4 19h16v2H2V3h2v16zm3-2h2V9H7v8zm4 0h2V5h-2v12zm4 0h2v-6h-2v6z" />
                 </svg>
             );
+        case 'campaign':
+            return (
+                <span className={`material-symbols-outlined ${base}`}>campaign</span>
+            );
         case 'menu':
             return (
                 <svg className={base} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -62,7 +66,7 @@ const Icon = ({ name, className = '' }) => {
 const Sidebar = () => {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const { user, logout, loading: authLoading } = useAuth();
+    const { user, logout, loading: authLoading, csrfToken } = useAuth();
     const navigate = useNavigate();
     const discordLoginUrl = `${API_BASE_URL}/auth/discord?origin=${encodeURIComponent(window.location.origin)}`;
 
@@ -70,10 +74,11 @@ const Sidebar = () => {
         { to: '/', icon: 'document', label: 'Document Editor', end: true },
         { to: '/analytics', icon: 'analytics', label: 'Analytics' },
         { to: '/feedback', icon: 'forum', label: 'FEEDBACK' },
+        { to: '/advertisements', icon: 'campaign', label: 'Advertisements' },
     ];
 
     const handleLogout = async () => {
-        await logout();
+        await logout(csrfToken);
         setIsMobileMenuOpen(false);
         navigate('/');
     };

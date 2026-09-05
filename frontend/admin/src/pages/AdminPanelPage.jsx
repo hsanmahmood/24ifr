@@ -141,7 +141,7 @@ const DocumentsPanel = ({
 };
 
 const AdminPanelPage = () => {
-    const { user, loading: authLoading } = useAuth();
+    const { user, loading: authLoading, csrfToken } = useAuth();
     const { notify } = useNotification();
 
     const [documents, setDocuments] = useState([]);
@@ -199,7 +199,7 @@ const AdminPanelPage = () => {
             await saveAdminDocument(selectedDocKey, {
                 title: editorTitle,
                 content_md: editorContent,
-            });
+            }, csrfToken);
 
             setDocuments((prev) => prev.map((doc) => (
                 doc.doc_key === selectedDocKey

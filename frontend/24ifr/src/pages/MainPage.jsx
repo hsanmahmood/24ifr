@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import AtcSettings from '../components/AtcSettings';
 import FlightPlanSection from '../components/MainPage/FlightPlanSection';
 import ClearanceDisplay from '../components/MainPage/ClearanceDisplay';
+import AdvertisementWidget from '../components/AdvertisementWidget';
 import { useFlightData } from '../hooks/useFlightData';
 import * as api from '../services/api';
 import { buildClearanceText, normalizeSettings } from '../services/clearance';
@@ -174,6 +175,9 @@ const MainPage = ({ onOpenLegalPopup, onOpenAboutPopup, onOpenSupportPopup }) =>
                             canGenerate={canGenerateClearance}
                             selectedFlightPlan={selectedFlightPlan}
                         />
+                    </div>
+                    <div className="mt-4">
+                        <AdvertisementWidget />
                     </div>
                     <div className="mt-4 flex items-center justify-center gap-3 flex-wrap">
                         <button

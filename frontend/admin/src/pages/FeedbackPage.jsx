@@ -4,6 +4,7 @@ import { loadAdminFeedback, pushFeedbackPrompt } from '../services/api'; // 1. I
 
 const FeedbackPage = () => {
     const { notify } = useNotification();
+    const { csrfToken } = useAuth();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [items, setItems] = useState([]);
@@ -37,10 +38,10 @@ const FeedbackPage = () => {
 
         setPushing(true);
         try {
-            await pushFeedbackPrompt(promptMessage);
+            await pushFeedbackPrompt(promptMessage, csrfToken);
             notify.success('Feedback prompt pushed successfully!');
-            setPromptMessage(''); // Clear input on success
-            load(); // Optional: Refresh list if pushing instantly changes it
+            setPromptMessage('');
+            load();
         } catch (e) {
             notify.error('Failed to push feedback prompt');
         } finally {

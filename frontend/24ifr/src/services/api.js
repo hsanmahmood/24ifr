@@ -115,3 +115,12 @@ export const submitFeedback = async (payload) => {
     return handleResponse(response);
 };
 
+export const getActiveAdvertisement = async () => {
+    try {
+        const response = await fetchWithAuth(`${API_BASE_URL}/api/advertisement/active`);
+        return handleResponse(response);
+    } catch (e) {
+        return null;
+    }
+};
+

@@ -7,6 +7,7 @@ import AdminPanelPage from './pages/AdminPanelPage';
 
 const AnalyticsPage = React.lazy(() => import('./pages/AnalyticsPage'));
 const FeedbackPage = React.lazy(() => import('./pages/FeedbackPage'));
+const AdvertisementsPage = React.lazy(() => import('./pages/AdvertisementsPage'));
 
 function App() {
   const [isLegalPopupOpen, setIsLegalPopupOpen] = useState(false);
@@ -40,6 +41,7 @@ function App() {
           />
           <Route path="analytics" element={<AnalyticsPage />} />
           <Route path="feedback" element={<FeedbackPage />} />
+          <Route path="advertisements" element={<AdvertisementsPage />} />
         </Route>
       </Routes>
     </React.Suspense>
