@@ -7,6 +7,7 @@ import {
     saveAdminDocument,
     loadAdminDailyClearances,
 } from '../services/api';
+import Dialog from '../components/Dialog';
 
 const DOC_ORDER = ['privacy_terms', 'credits', 'support', 'changelog'];
 
@@ -73,7 +74,14 @@ const DocumentsPanel = ({
     setEditorContent,
     saving,
     onSave,
+    showEditorDialog,
+    setShowEditorDialog,
 }) => {
+    const openEditor = (key) => {
+        setSelectedDocKey(key);
+        setShowEditorDialog(true);
+    };
+
     return (
         <section className="bg-surface-dark border border-border-dark rounded-lg p-5 md:p-6 shadow-sm">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -86,7 +94,7 @@ const DocumentsPanel = ({
                         <button
                             key={key}
                             type="button"
-                            onClick={() => setSelectedDocKey(key)}
+                            onClick={() => openEditor(key)}
                             className={[
                                 'rounded-md border px-3 py-2 text-xs font-semibold uppercase tracking-wider transition-colors whitespace-nowrap',
                                 selectedDocKey === key
@@ -100,42 +108,59 @@ const DocumentsPanel = ({
                 </div>
             </div>
 
-            <div className="mt-5 space-y-4">
-                <div>
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Title</label>
-                    <input
-                        type="text"
-                        value={editorTitle}
-                        onChange={(event) => setEditorTitle(event.target.value)}
-                        className="mt-1 w-full rounded-md border border-zinc-800 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                    />
-                </div>
-
-                <div>
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Markdown Content</label>
-                    <textarea
-                        value={editorContent}
-                        onChange={(event) => setEditorContent(event.target.value)}
-                        className="mt-1 min-h-[320px] w-full rounded-md border border-zinc-800 bg-black/40 px-3 py-3 text-sm text-zinc-200 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                    />
-                </div>
-
-                <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs text-zinc-500">Editing: {DOC_LABELS[selectedDocKey] || selectedDocKey}</p>
-                    <button
-                        type="button"
-                        onClick={onSave}
-                        disabled={saving}
-                        className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-black transition-colors hover:brightness-95 disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                        {saving ? 'Saving...' : 'Save Changes'}
-                    </button>
-                </div>
-            </div>
-
             <div className="mt-4 rounded-md border border-zinc-800 bg-black/20 px-3 py-2 text-xs text-zinc-500">
                 Loaded docs: {documents.length}
             </div>
+
+            <Dialog
+                isOpen={showEditorDialog}
+                onClose={() => setShowEditorDialog(false)}
+                title={`Edit: ${DOC_LABELS[selectedDocKey] || selectedDocKey}`}
+                size="lg"
+            >
+                <div className="space-y-4">
+                    <div>
+                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Title</label>
+                        <input
+                            type="text"
+                            value={editorTitle}
+                            onChange={(event) => setEditorTitle(event.target.value)}
+                            className="mt-1 w-full rounded-md border border-zinc-800 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Markdown Content</label>
+                        <textarea
+                            value={editorContent}
+                            onChange={(event) => setEditorContent(event.target.value)}
+                            className="mt-1 min-h-[320px] w-full rounded-md border border-zinc-800 bg-black/40 px-3 py-3 text-sm text-zinc-200 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                        />
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3">
+                        <p className="text-xs text-zinc-500">Editing: {DOC_LABELS[selectedDocKey] || selectedDocKey}</p>
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setShowEditorDialog(false)}
+                                disabled={saving}
+                                className="rounded-md border border-zinc-800 bg-black/40 text-white px-4 py-2 text-sm font-semibold transition-colors hover:bg-zinc-800"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={onSave}
+                                disabled={saving}
+                                className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-black transition-colors hover:brightness-95 disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                                {saving ? 'Saving...' : 'Save Changes'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </Dialog>
         </section>
     );
 };
@@ -149,6 +174,7 @@ const AdminPanelPage = () => {
     const [editorTitle, setEditorTitle] = useState('');
     const [editorContent, setEditorContent] = useState('');
     const [saving, setSaving] = useState(false);
+    const [showEditorDialog, setShowEditorDialog] = useState(false);
 
     const [series, setSeries] = useState([]);
     const [loadingData, setLoadingData] = useState(true);
@@ -186,7 +212,7 @@ const AdminPanelPage = () => {
         const currentDoc = documents.find((doc) => doc.doc_key === selectedDocKey);
         setEditorTitle(currentDoc?.title || DOC_LABELS[selectedDocKey] || 'Untitled');
         setEditorContent(currentDoc?.content_md || '');
-    }, [documents, selectedDocKey]);
+    }, [documents, selectedDocKey, showEditorDialog]);
 
     const handleSave = async () => {
         if (!editorTitle.trim()) {
@@ -208,6 +234,7 @@ const AdminPanelPage = () => {
             )));
 
             notify.success('Document saved.');
+            setShowEditorDialog(false);
         } catch (error) {
             console.error('Failed to save document:', error);
             notify.error('Failed to save document.');
@@ -260,6 +287,8 @@ const AdminPanelPage = () => {
                 setEditorContent={setEditorContent}
                 saving={saving}
                 onSave={handleSave}
+                showEditorDialog={showEditorDialog}
+                setShowEditorDialog={setShowEditorDialog}
             />
 
             <ChartPanel series={series} loading={loadingData} />

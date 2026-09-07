@@ -2,9 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import Combobox from "../components/Combobox";
 import { loadUserSettings, saveUserSettings } from "../services/api";
 import { useNotification } from "../context/NotificationContext";
-import { AUTHORITY_LABELS, AUTHORITY_ORDER, DEFAULT_AUTHORITY_TEMPLATES, DEFAULT_SETTINGS, PLACEHOLDERS, normalizeSettings } from "../services/clearance";
+import { PHRASEOLOGY_LABELS, PHRASEOLOGY_ORDER, DEFAULT_PHRASEOLOGY_TEMPLATES, DEFAULT_SETTINGS, PLACEHOLDERS, normalizeSettings } from "../services/clearance";
 
-const getAuthorityTemplate = (settings, authority) => settings.authorities?.[authority]?.template || DEFAULT_AUTHORITY_TEMPLATES[authority] || "";
+const getPhraseologyTemplate = (settings, phraseology) => settings.phraseologies?.[phraseology]?.template || DEFAULT_PHRASEOLOGY_TEMPLATES[phraseology] || "";
 
 const ConfigPage = () => {
     const { notify } = useNotification();
@@ -21,43 +21,43 @@ const ConfigPage = () => {
         setDefaultSettingsEnabled(Boolean(stored.defaultSettingsEnabled));
     }, []);
 
-    const activeAuthority = settings.activeAuthority;
-    const activeTemplate = getAuthorityTemplate(settings, activeAuthority);
+    const activePhraseology = settings.activePhraseology;
+    const activeTemplate = getPhraseologyTemplate(settings, activePhraseology);
 
     const updateSetting = (key, value) => {
         setIsDirty(true);
         setSettings((prev) => ({ ...prev, [key]: value }));
     };
 
-    const updateAuthorityTemplate = (authority, template) => {
+    const updatePhraseologyTemplate = (phraseology, template) => {
         setIsDirty(true);
         setSettings((prev) => {
-            const authorities = { ...(prev.authorities || {}) };
-            authorities[authority] = { ...(authorities[authority] || {}), template };
+            const phraseologies = { ...(prev.phraseologies || {}) };
+            phraseologies[phraseology] = { ...(phraseologies[phraseology] || {}), template };
             return {
                 ...prev,
-                activeAuthority: authority,
-                authority,
+                activePhraseology: phraseology,
+                phraseology,
                 clearanceTemplate: template,
-                authorities,
+                phraseologies,
             };
         });
     };
 
-    const setActiveAuthority = (authority) => {
+    const setActivePhraseology = (phraseology) => {
         setIsDirty(true);
         setSettings((prev) => ({
             ...prev,
-            activeAuthority: authority,
-            authority,
-            clearanceTemplate: getAuthorityTemplate(prev, authority),
+            activePhraseology: phraseology,
+            phraseology,
+            clearanceTemplate: getPhraseologyTemplate(prev, phraseology),
         }));
     };
 
-    const resetActiveAuthority = () => {
-        const template = DEFAULT_AUTHORITY_TEMPLATES[activeAuthority] || "";
-        updateAuthorityTemplate(activeAuthority, template);
-        notify.success(`${AUTHORITY_LABELS[activeAuthority] || activeAuthority} reset to default`);
+    const resetActivePhraseology = () => {
+        const template = DEFAULT_PHRASEOLOGY_TEMPLATES[activePhraseology] || "";
+        updatePhraseologyTemplate(activePhraseology, template);
+        notify.success(`${PHRASEOLOGY_LABELS[activePhraseology] || activePhraseology} reset to default`);
     };
 
     const handleSave = () => {
@@ -86,7 +86,7 @@ const ConfigPage = () => {
         const end = textarea.selectionEnd;
         const before = activeTemplate.substring(0, start);
         const after = activeTemplate.substring(end);
-        updateAuthorityTemplate(activeAuthority, `${before}${placeholder}${after}`);
+        updatePhraseologyTemplate(activePhraseology, `${before}${placeholder}${after}`);
         setTimeout(() => {
             textarea.focus();
             textarea.selectionStart = textarea.selectionEnd = start + placeholder.length;
@@ -116,7 +116,7 @@ const ConfigPage = () => {
 
     const handleDefaultRoutingChange = (value) => {
         updateSetting("defaultRouting", value);
-        if (value === "As Filed" || value === "VECTORS") {
+        if (value === "Filed route" || value === "As filed" || value === "VECTORS") {
             updateSetting("defaultRoutingDetails", "");
         }
     };
@@ -135,7 +135,8 @@ const ConfigPage = () => {
     const atisOptions = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)).map((letter) => ({ label: `Info ${letter}`, value: letter }));
 
     const routingOptions = [
-        { label: "Use original filed route", value: "As Filed" },
+        { label: "Filed route", value: "Filed route" },
+        { label: "As filed", value: "As filed" },
         { label: "SID", value: "SID" },
         { label: "Radar Vectors", value: "VECTORS" },
         { label: "Direct waypoint", value: "DIRECT" },
@@ -151,23 +152,23 @@ const ConfigPage = () => {
                 <h2 className="font-display text-lg font-bold text-white mb-4 uppercase tracking-wide">Template Editor</h2>
 
                 <div className="flex flex-wrap gap-2 mb-4">
-                    {AUTHORITY_ORDER.map((authority) => (
+                    {PHRASEOLOGY_ORDER.map((phraseology) => (
                         <button
-                            key={authority}
+                            key={phraseology}
                             type="button"
-                            onClick={() => setActiveAuthority(authority)}
+                            onClick={() => setActivePhraseology(phraseology)}
                             className={`px-3 py-2 rounded border text-xs font-semibold uppercase tracking-wider transition-all ${
-                                activeAuthority === authority
+                                activePhraseology === phraseology
                                     ? "bg-primary text-black border-primary"
                                     : "bg-zinc-900 text-primary border-zinc-800 hover:border-primary hover:text-black hover:bg-primary"
                             }`}
                         >
-                            {AUTHORITY_LABELS[authority] || authority}
+                            {PHRASEOLOGY_LABELS[phraseology] || phraseology}
                         </button>
                     ))}
                     <button
                         type="button"
-                        onClick={resetActiveAuthority}
+                        onClick={resetActivePhraseology}
                         className="ml-auto px-3 py-2 rounded border border-zinc-800 bg-black/30 text-zinc-300 text-xs font-semibold uppercase tracking-wider hover:border-primary hover:text-white transition-all"
                     >
                         Reset Current Preset
@@ -175,7 +176,7 @@ const ConfigPage = () => {
                 </div>
 
                 <div className="mb-3 text-xs text-zinc-400 uppercase tracking-wider font-semibold">
-                    Editing: {AUTHORITY_LABELS[activeAuthority] || activeAuthority}
+                    Editing: {PHRASEOLOGY_LABELS[activePhraseology] || activePhraseology}
                 </div>
 
                 <div className="flex flex-wrap gap-2 mb-4">
@@ -186,7 +187,7 @@ const ConfigPage = () => {
                     ))}
                 </div>
 
-                <textarea ref={textareaRef} value={activeTemplate} onChange={(e) => updateAuthorityTemplate(activeAuthority, e.target.value)} className="w-full h-40 bg-black/50 border border-zinc-800 text-white font-mono text-sm rounded-lg p-4 outline-none focus:border-primary focus:ring-1 focus:ring-primary mb-4 resize-none" placeholder="Enter your clearance template..."></textarea>
+                <textarea ref={textareaRef} value={activeTemplate} onChange={(e) => updatePhraseologyTemplate(activePhraseology, e.target.value)} className="w-full h-40 bg-black/50 border border-zinc-800 text-white font-mono text-sm rounded-lg p-4 outline-none focus:border-primary focus:ring-1 focus:ring-primary mb-4 resize-none" placeholder="Enter your clearance template..."></textarea>
 
                 <div className="flex items-center gap-3">
                     <button onClick={handleSave} className="bg-primary hover:brightness-110 text-black font-bold uppercase tracking-widest py-2 px-6 rounded transition-all text-sm flex items-center gap-2">
@@ -242,7 +243,7 @@ const ConfigPage = () => {
                 </div>
 
                 <div className="mb-4">
-                    {settings.defaultRouting !== "As Filed" && settings.defaultRouting !== "VECTORS" && (
+                    {settings.defaultRouting !== "Filed route" && settings.defaultRouting !== "As filed" && settings.defaultRouting !== "VECTORS" && (
                         <label className="space-y-1.5">
                             <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Default Route Details</span>
                             <input type="text" value={settings.defaultRoutingDetails} onChange={(e) => updateSetting("defaultRoutingDetails", e.target.value)} className="w-full bg-black/50 border border-zinc-800 text-white text-sm rounded px-3 py-2.5 outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed" placeholder={getRouteDetailsHint()} disabled={!defaultSettingsEnabled} />

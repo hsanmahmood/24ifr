@@ -1,31 +1,31 @@
-export const DEFAULT_AUTHORITY = "ICAO-E";
+export const DEFAULT_PHRASEOLOGY = "ICAO-E";
 
-export const AUTHORITY_LABELS = {
+export const PHRASEOLOGY_LABELS = {
     FAA: "FAA (USA)",
     "ICAO-E": "ICAO-E (Europe)",
     CASA: "CASA (Australia)",
     CAA: "CAA (UK)",
 };
 
-export const AUTHORITY_ORDER = ["FAA", "ICAO-E", "CASA", "CAA"];
+export const PHRASEOLOGY_ORDER = ["FAA", "ICAO-E", "CASA", "CAA"];
 
-export const DEFAULT_AUTHORITY_TEMPLATES = {
+export const DEFAULT_PHRASEOLOGY_TEMPLATES = {
     FAA: "{CALLSIGN}, {ATC_STATION}, cleared to {DESTINATION} airport via {ROUTE}, maintain {INITIAL_ALT}, expect {FLIGHT_LEVEL} ten minutes after departure, squawk {SQUAWK}.",
     "ICAO-E": "{CALLSIGN}, {ATC_STATION}, cleared to {DESTINATION} via {ROUTE}, initial climb {INITIAL_ALT}, squawk {SQUAWK}, information {ATIS}.",
     CASA: "{CALLSIGN}, {ATC_STATION}, cleared to {DESTINATION} via {ROUTE}, runway {RUNWAY}, maintain {INITIAL_ALT}, squawk {SQUAWK}, ATIS {ATIS}.",
     CAA: "{CALLSIGN}, {ATC_STATION}, cleared to {DESTINATION} via {ROUTE}, climb initially {INITIAL_ALT}, squawk {SQUAWK}, QNH [set by controller].",
 };
 
-export const DEFAULT_TEMPLATE = DEFAULT_AUTHORITY_TEMPLATES[DEFAULT_AUTHORITY];
+export const DEFAULT_TEMPLATE = DEFAULT_PHRASEOLOGY_TEMPLATES[DEFAULT_PHRASEOLOGY];
 
-export const AUTHORITY_DEFAULTS = {
+export const PHRASEOLOGY_DEFAULTS = {
     FAA: "{CALLSIGN}, {ATC_STATION}, cleared to {DESTINATION} airport via {ROUTE}, maintain {INITIAL_ALT}, expect {FLIGHT_LEVEL} ten minutes after departure, squawk {SQUAWK}.",
     "ICAO-E": "{CALLSIGN}, {ATC_STATION}, cleared to {DESTINATION} via {ROUTE}, initial climb {INITIAL_ALT}, squawk {SQUAWK}, information {ATIS}.",
     CASA: "{CALLSIGN}, {ATC_STATION}, cleared to {DESTINATION} via {ROUTE}, runway {RUNWAY}, maintain {INITIAL_ALT}, squawk {SQUAWK}, ATIS {ATIS}.",
     CAA: "{CALLSIGN}, {ATC_STATION}, cleared to {DESTINATION} via {ROUTE}, climb initially {INITIAL_ALT}, squawk {SQUAWK}, information {ATIS}.",
 };
 
-export const AUTHORITY_KEYS = ["FAA", "ICAO-E", "CASA", "CAA"];
+export const PHRASEOLOGY_KEYS = ["FAA", "ICAO-E", "CASA", "CAA"];
 
 export const PLACEHOLDERS = [
     "{CALLSIGN}",
@@ -39,23 +39,23 @@ export const PLACEHOLDERS = [
     "{SQUAWK}",
 ];
 
-const buildAuthoritySlots = (authorities = {}, fallbackTemplate) => {
+const buildPhraseologySlots = (phraseologies = {}, fallbackTemplate) => {
     const slots = {};
-    for (const key of AUTHORITY_KEYS) {
-        const existing = authorities?.[key]?.template;
-        const migratedLegacy = key === DEFAULT_AUTHORITY && fallbackTemplate && fallbackTemplate !== AUTHORITY_DEFAULTS[DEFAULT_AUTHORITY] ? fallbackTemplate : undefined;
+    for (const key of PHRASEOLOGY_KEYS) {
+        const existing = phraseologies?.[key]?.template;
+        const migratedLegacy = key === DEFAULT_PHRASEOLOGY && fallbackTemplate && fallbackTemplate !== PHRASEOLOGY_DEFAULTS[DEFAULT_PHRASEOLOGY] ? fallbackTemplate : undefined;
         slots[key] = {
-            template: String(existing || migratedLegacy || AUTHORITY_DEFAULTS[key]),
+            template: String(existing || migratedLegacy || PHRASEOLOGY_DEFAULTS[key]),
         };
     }
     return slots;
 };
 
 export const DEFAULT_SETTINGS = {
-    activeAuthority: DEFAULT_AUTHORITY,
-    authorities: buildAuthoritySlots({}, DEFAULT_TEMPLATE),
+    activePhraseology: DEFAULT_PHRASEOLOGY,
+    phraseologies: buildPhraseologySlots({}, DEFAULT_TEMPLATE),
     clearanceTemplate: DEFAULT_TEMPLATE,
-    defaultRouting: "As Filed",
+    defaultRouting: "Filed route",
     defaultRoutingDetails: "",
     defaultSidRoutingDetails: "",
     defaultDirectRoutingDetails: "",
@@ -64,18 +64,18 @@ export const DEFAULT_SETTINGS = {
 };
 
 export const normalizeSettings = (s = {}) => {
-    const activeAuthority = AUTHORITY_KEYS.includes(s.activeAuthority) ? s.activeAuthority : DEFAULT_AUTHORITY;
-    const authorities = buildAuthoritySlots(s.authorities || {}, s.clearanceTemplate);
+    const activePhraseology = PHRASEOLOGY_KEYS.includes(s.activePhraseology) ? s.activePhraseology : DEFAULT_PHRASEOLOGY;
+    const phraseologies = buildPhraseologySlots(s.phraseologies || {}, s.clearanceTemplate);
     const legacyTemplate = String(s.clearanceTemplate || "");
-    if (legacyTemplate && !s.authorities?.[DEFAULT_AUTHORITY] && legacyTemplate !== AUTHORITY_DEFAULTS[DEFAULT_AUTHORITY]) {
-        authorities[DEFAULT_AUTHORITY] = { template: legacyTemplate };
+    if (legacyTemplate && !s.phraseologies?.[DEFAULT_PHRASEOLOGY] && legacyTemplate !== PHRASEOLOGY_DEFAULTS[DEFAULT_PHRASEOLOGY]) {
+        phraseologies[DEFAULT_PHRASEOLOGY] = { template: legacyTemplate };
     }
-    const resolvedActiveAuthority = AUTHORITY_KEYS.includes(activeAuthority) ? activeAuthority : DEFAULT_AUTHORITY;
+    const resolvedActivePhraseology = PHRASEOLOGY_KEYS.includes(activePhraseology) ? activePhraseology : DEFAULT_PHRASEOLOGY;
     return {
-        activeAuthority: resolvedActiveAuthority,
-        authorities,
-        clearanceTemplate: authorities[resolvedActiveAuthority].template,
-        defaultRouting: s.defaultRouting || "As Filed",
+        activePhraseology: resolvedActivePhraseology,
+        phraseologies,
+        clearanceTemplate: phraseologies[resolvedActivePhraseology].template,
+        defaultRouting: s.defaultRouting || "Filed route",
         defaultRoutingDetails: s.defaultRoutingDetails || "",
         defaultSidRoutingDetails: s.defaultSidRoutingDetails || "",
         defaultDirectRoutingDetails: s.defaultDirectRoutingDetails || "",
@@ -114,7 +114,8 @@ export const resolveRouting = ({ flightPlan, routing, routingDetails, settings }
     const s = normalizeSettings(settings);
     const mode = routing || s.defaultRouting;
     const details = routingDetails || s.defaultRoutingDetails || "";
-    if (mode === "As Filed") return flightPlan?.route || "";
+    if (mode === "Filed route") return flightPlan?.route || "";
+    if (mode === "As filed") return `as filed to ${flightPlan?.arriving || ""}`;
     if (mode === "SID") return details ? `the ${details} departure` : "the departure procedure";
     if (mode === "DIRECT") return details ? `direct ${details}` : flightPlan?.route || "direct";
     if (mode === "VECTORS") return "Radar Vectors";
@@ -129,7 +130,7 @@ export const buildClearanceText = ({ flightPlan, formSettings = {}, advancedSett
         routingDetails: formSettings.routingDetails,
         settings,
     });
-    const template = settings.authorities[settings.activeAuthority].template;
+    const template = settings.phraseologies[settings.activePhraseology].template;
     const callsign = flightPlan?.callsign
         ? settings.uppercaseCallsign
             ? flightPlan.callsign.toUpperCase()

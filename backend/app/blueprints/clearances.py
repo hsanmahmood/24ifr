@@ -74,12 +74,15 @@ def track_clearance_generation():
         if not clearance_text.strip():
             return jsonify({'success': False, 'error': 'clearance_text is required'}), 400
         
+        if not callsign.strip():
+            return jsonify({'success': False, 'error': 'callsign is required'}), 400
+        
         user_id = resolve_current_discord_user_id()
         record = {
             'user_id': user_id,
             'discord_username': session.get('user', {}).get('username'),
             'clearance_text': clearance_text,
-            'callsign': callsign if callsign.strip() else None,
+            'callsign': callsign,
             'destination': destination if destination.strip() else None,
         }
         supabase.from_('clearance_generations').insert(record).execute()

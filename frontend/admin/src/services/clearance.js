@@ -1,6 +1,6 @@
-export const DEFAULT_AUTHORITY = "ICAO-E";
+export const DEFAULT_PHRASEOLOGY = "ICAO-E";
 
-export const AUTHORITY_LABELS = {
+export const PHRASEOLOGY_LABELS = {
     FAA: "FAA (USA)",
     "ICAO-E": "ICAO-E (Europe)",
     CASA: "CASA (Australia)",
@@ -8,9 +8,9 @@ export const AUTHORITY_LABELS = {
     Generic: "Generic",
 };
 
-export const AUTHORITY_ORDER = ["FAA", "ICAO-E", "CASA", "CAA", "Generic"];
+export const PHRASEOLOGY_ORDER = ["FAA", "ICAO-E", "CASA", "CAA", "Generic"];
 
-export const DEFAULT_AUTHORITY_TEMPLATES = {
+export const DEFAULT_PHRASEOLOGY_TEMPLATES = {
     FAA: "{CALLSIGN}, {ATC_STATION}, cleared to {DESTINATION} airport via {ROUTE}, maintain {INITIAL_ALT}, expect {FLIGHT_LEVEL} ten minutes after departure, squawk {SQUAWK}.",
     "ICAO-E": "{CALLSIGN}, {ATC_STATION}, cleared to {DESTINATION} via {ROUTE}, initial climb {INITIAL_ALT}, squawk {SQUAWK}, information {ATIS}.",
     CASA: "{CALLSIGN}, {ATC_STATION}, cleared to {DESTINATION} via {ROUTE}, runway {RUNWAY}, maintain {INITIAL_ALT}, squawk {SQUAWK}, ATIS {ATIS}.",
@@ -18,7 +18,7 @@ export const DEFAULT_AUTHORITY_TEMPLATES = {
     Generic: "{CALLSIGN}, {ATC_STATION}, good day. Startup approved. Information {ATIS} correct. Cleared {DESTINATION} via {ROUTE}, runway {RUNWAY}. Initial climb FT{INITIAL_ALT}. Squawk {SQUAWK}.",
 };
 
-export const DEFAULT_TEMPLATE = DEFAULT_AUTHORITY_TEMPLATES.Generic;
+export const DEFAULT_TEMPLATE = DEFAULT_PHRASEOLOGY_TEMPLATES.Generic;
 
 export const PLACEHOLDERS = [
     "{CALLSIGN}",
@@ -33,52 +33,52 @@ export const PLACEHOLDERS = [
 ];
 
 export const DEFAULT_SETTINGS = {
-    activeAuthority: DEFAULT_AUTHORITY,
-    authorities: Object.fromEntries(
-        AUTHORITY_ORDER.map((authority) => [authority, { template: DEFAULT_AUTHORITY_TEMPLATES[authority] }])
+    activePhraseology: DEFAULT_PHRASEOLOGY,
+    phraseologies: Object.fromEntries(
+        PHRASEOLOGY_ORDER.map((phraseology) => [phraseology, { template: DEFAULT_PHRASEOLOGY_TEMPLATES[phraseology] }])
     ),
     clearanceTemplate: DEFAULT_TEMPLATE,
     defaultRouting: "As Filed",
     defaultRoutingDetails: "",
     uppercaseCallsign: true,
     defaultSettingsEnabled: false,
-    authority: DEFAULT_AUTHORITY,
+    phraseology: DEFAULT_PHRASEOLOGY,
 };
 
-const isKnownAuthority = (value) => AUTHORITY_ORDER.includes(value);
+const isKnownPhraseology = (value) => PHRASEOLOGY_ORDER.includes(value);
 
-const normalizeAuthoritySlot = (authority, slot) => ({
-    template: String(slot?.template || DEFAULT_AUTHORITY_TEMPLATES[authority] || DEFAULT_TEMPLATE),
+const normalizePhraseologySlot = (phraseology, slot) => ({
+    template: String(slot?.template || DEFAULT_PHRASEOLOGY_TEMPLATES[phraseology] || DEFAULT_TEMPLATE),
 });
 
 export const normalizeSettings = (s = {}) => {
-    const activeAuthority = isKnownAuthority(s.activeAuthority)
-        ? s.activeAuthority
-        : isKnownAuthority(s.authority)
-            ? s.authority
-            : DEFAULT_AUTHORITY;
+    const activePhraseology = isKnownPhraseology(s.activePhraseology)
+        ? s.activePhraseology
+        : isKnownPhraseology(s.phraseology)
+            ? s.phraseology
+            : DEFAULT_PHRASEOLOGY;
     const legacyTemplate = String(s.clearanceTemplate || DEFAULT_TEMPLATE);
-    const sourceAuthorities = s.authorities && typeof s.authorities === "object" ? s.authorities : {};
-    const authorities = Object.fromEntries(
-        AUTHORITY_ORDER.map((authority) => [
-            authority,
-            normalizeAuthoritySlot(
-                authority,
-                authority === "Generic"
-                    ? { template: sourceAuthorities?.Generic?.template || legacyTemplate }
-                    : sourceAuthorities?.[authority]
+    const sourcePhraseologies = s.phraseologies && typeof s.phraseologies === "object" ? s.phraseologies : {};
+    const phraseologies = Object.fromEntries(
+        PHRASEOLOGY_ORDER.map((phraseology) => [
+            phraseology,
+            normalizePhraseologySlot(
+                phraseology,
+                phraseology === "Generic"
+                    ? { template: sourcePhraseologies?.Generic?.template || legacyTemplate }
+                    : sourcePhraseologies?.[phraseology]
             ),
         ])
     );
-    const activeTemplate = authorities[activeAuthority]?.template || DEFAULT_AUTHORITY_TEMPLATES[activeAuthority] || DEFAULT_TEMPLATE;
+    const activeTemplate = phraseologies[activePhraseology]?.template || DEFAULT_PHRASEOLOGY_TEMPLATES[activePhraseology] || DEFAULT_TEMPLATE;
 
     return {
         ...DEFAULT_SETTINGS,
         ...s,
-        activeAuthority,
-        authorities,
+        activePhraseology,
+        phraseologies,
         clearanceTemplate: activeTemplate,
-        authority: activeAuthority,
+        phraseology: activePhraseology,
         defaultRouting: s.defaultRouting || DEFAULT_SETTINGS.defaultRouting,
         defaultRoutingDetails: s.defaultRoutingDetails || DEFAULT_SETTINGS.defaultRoutingDetails,
         uppercaseCallsign: s.uppercaseCallsign ?? DEFAULT_SETTINGS.uppercaseCallsign,
@@ -118,7 +118,8 @@ export const resolveRouting = ({ flightPlan, routing, routingDetails, settings }
     const s = normalizeSettings(settings);
     const mode = routing || s.defaultRouting;
     const details = routingDetails || s.defaultRoutingDetails || "";
-    if (mode === "As Filed") return flightPlan?.route || "";
+    if (mode === "Filed route") return flightPlan?.route || "";
+    if (mode === "As filed") return `as filed to ${flightPlan?.arriving || ""}`;
     if (mode === "SID") return details ? `the ${details} departure` : "the departure procedure";
     if (mode === "DIRECT") return details ? `direct ${details}` : (flightPlan?.route || "direct");
     if (mode === "VECTORS") return "Radar Vectors";
@@ -133,7 +134,7 @@ export const buildClearanceText = ({ flightPlan, formSettings = {}, advancedSett
         routingDetails: formSettings.routingDetails,
         settings,
     });
-    const template = settings.authorities?.[settings.activeAuthority]?.template || settings.clearanceTemplate || DEFAULT_TEMPLATE;
+    const template = settings.phraseologies?.[settings.activePhraseology]?.template || settings.clearanceTemplate || DEFAULT_TEMPLATE;
     const callsign = flightPlan?.callsign
         ? settings.uppercaseCallsign
             ? flightPlan.callsign.toUpperCase()

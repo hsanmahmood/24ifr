@@ -9,6 +9,7 @@ import {
     activateAdvertisement,
     deactivateAdvertisement,
 } from '../services/api';
+import Dialog from '../components/Dialog';
 
 const AdvertisementsPage = () => {
     const { notify } = useNotification();
@@ -17,7 +18,7 @@ const AdvertisementsPage = () => {
     const [error, setError] = useState('');
     const [items, setItems] = useState([]);
     const [editingId, setEditingId] = useState(null);
-    const [showCreateForm, setShowCreateForm] = useState(false);
+    const [showFormDialog, setShowFormDialog] = useState(false);
 
     const [formData, setFormData] = useState({
         server_name: '',
@@ -56,7 +57,7 @@ const AdvertisementsPage = () => {
             message: '',
         });
         setEditingId(null);
-        setShowCreateForm(false);
+        setShowFormDialog(false);
     };
 
     const handleCreate = async (e) => {
@@ -88,7 +89,7 @@ const AdvertisementsPage = () => {
             description: item.description || '',
             message: item.message || '',
         });
-        setShowCreateForm(false);
+        setShowFormDialog(true);
     };
 
     const handleUpdate = async (e) => {
@@ -100,11 +101,19 @@ const AdvertisementsPage = () => {
 
         setSubmitting(true);
         try {
-            await updateAdvertisement(editingId, formData, csrfToken);
+            const payload = {
+                server_name: formData.server_name,
+                invite_url: formData.invite_url,
+                icon_url: formData.icon_url || null,
+                description: formData.description || null,
+                message: formData.message || null,
+            };
+            await updateAdvertisement(editingId, payload, csrfToken);
             notify.success('Advertisement updated successfully');
             resetForm();
             load();
         } catch (e) {
+            console.error('Update error:', e);
             notify.error('Failed to update advertisement');
         } finally {
             setSubmitting(false);
@@ -150,103 +159,36 @@ const AdvertisementsPage = () => {
     const activeAd = items.find(item => item.is_active);
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8">
-            <div className="bg-surface-dark border border-border-dark rounded-lg p-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-zinc-800">
-                    <h1 className="text-lg font-display font-bold text-white tracking-wide uppercase">Advertisements</h1>
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-6 pt-20 lg:pt-8">
+            <header className="bg-surface-dark border border-border-dark rounded-lg p-5 md:p-6 shadow-sm">
+                <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Advertisement Management</p>
+                <h1 className="mt-2 font-display text-3xl font-bold text-white uppercase tracking-wide">Advertisements</h1>
+                <p className="mt-2 text-sm text-zinc-400">Manage community server advertisements displayed on the public site.</p>
+            </header>
+
+            <section className="bg-surface-dark border border-border-dark rounded-lg p-5 md:p-6 shadow-sm">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <h2 className="font-display text-lg font-bold text-white tracking-wide uppercase">Advertisement List</h2>
+                        <p className="mt-1 text-xs text-zinc-500 uppercase tracking-wider">
+                            {activeAd ? (
+                                <span className="text-primary">Active: {activeAd.server_name}</span>
+                            ) : (
+                                <span className="text-zinc-500">No active advertisement</span>
+                            )}
+                        </p>
+                    </div>
                     <button
                         type="button"
                         onClick={() => {
                             resetForm();
-                            setShowCreateForm(true);
+                            setShowFormDialog(true);
                         }}
-                        className="bg-amber-500 hover:bg-amber-600 text-zinc-950 font-medium px-4 py-2 rounded text-sm transition-colors whitespace-nowrap"
+                        className="bg-primary hover:brightness-95 text-black font-semibold px-4 py-2 rounded-md text-sm transition-colors whitespace-nowrap"
                     >
                         Create New
                     </button>
                 </div>
-
-                {(showCreateForm || editingId) && (
-                    <div className="mt-6 p-4 border border-zinc-800 rounded-lg bg-black/20">
-                        <h2 className="text-sm font-bold text-white mb-4">
-                            {editingId ? 'Edit Advertisement' : 'Create Advertisement'}
-                        </h2>
-                        <form onSubmit={editingId ? handleUpdate : handleCreate} className="space-y-4">
-                            <div>
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Server Name *</label>
-                                <input
-                                    type="text"
-                                    value={formData.server_name}
-                                    onChange={(e) => setFormData({ ...formData, server_name: e.target.value.slice(0, 100) })}
-                                    disabled={submitting}
-                                    className="mt-1 w-full bg-zinc-900 border border-zinc-700 text-white rounded px-3 py-2 text-sm outline-none focus:border-amber-500"
-                                    maxLength={100}
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Invite URL *</label>
-                                <input
-                                    type="url"
-                                    value={formData.invite_url}
-                                    onChange={(e) => setFormData({ ...formData, invite_url: e.target.value })}
-                                    disabled={submitting}
-                                    placeholder="https://discord.gg/..."
-                                    className="mt-1 w-full bg-zinc-900 border border-zinc-700 text-white rounded px-3 py-2 text-sm outline-none focus:border-amber-500"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Icon URL</label>
-                                <input
-                                    type="url"
-                                    value={formData.icon_url}
-                                    onChange={(e) => setFormData({ ...formData, icon_url: e.target.value })}
-                                    disabled={submitting}
-                                    placeholder="https://..."
-                                    className="mt-1 w-full bg-zinc-900 border border-zinc-700 text-white rounded px-3 py-2 text-sm outline-none focus:border-amber-500"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Description</label>
-                                <textarea
-                                    value={formData.description}
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value.slice(0, 500) })}
-                                    disabled={submitting}
-                                    className="mt-1 w-full bg-zinc-900 border border-zinc-700 text-white rounded px-3 py-2 text-sm outline-none focus:border-amber-500 resize-none h-20"
-                                    maxLength={500}
-                                />
-                            </div>
-                            <div>
-                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Message</label>
-                                <textarea
-                                    value={formData.message}
-                                    onChange={(e) => setFormData({ ...formData, message: e.target.value.slice(0, 500) })}
-                                    disabled={submitting}
-                                    className="mt-1 w-full bg-zinc-900 border border-zinc-700 text-white rounded px-3 py-2 text-sm outline-none focus:border-amber-500 resize-none h-20"
-                                    maxLength={500}
-                                />
-                            </div>
-                            <div className="flex gap-2">
-                                <button
-                                    type="submit"
-                                    disabled={submitting}
-                                    className="bg-amber-500 hover:bg-amber-600 disabled:bg-zinc-700 disabled:text-zinc-500 text-zinc-950 font-medium px-4 py-2 rounded text-sm transition-colors"
-                                >
-                                    {submitting ? 'Saving...' : (editingId ? 'Update' : 'Create')}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={resetForm}
-                                    disabled={submitting}
-                                    className="bg-zinc-800 hover:bg-zinc-700 text-white font-medium px-4 py-2 rounded text-sm transition-colors"
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                )}
 
                 {loading ? (
                     <div className="mt-6 space-y-3">
@@ -254,26 +196,19 @@ const AdvertisementsPage = () => {
                         <div className="skeleton h-40 w-full rounded"></div>
                     </div>
                 ) : error ? (
-                    <div className="text-red-400 mt-4">{error}</div>
+                    <div className="mt-6 text-red-400 text-sm">{error}</div>
                 ) : items.length === 0 ? (
-                    <div className="text-zinc-500 text-sm mt-6">No advertisements yet. Create one to get started.</div>
+                    <div className="mt-6 text-zinc-500 text-sm">No advertisements yet. Create one to get started.</div>
                 ) : (
-                    <div className="mt-6">
-                        <div className="text-xs text-zinc-500 mb-4">
-                            {activeAd ? (
-                                <span className="text-green-400">Active: {activeAd.server_name}</span>
-                            ) : (
-                                <span className="text-zinc-500">No active advertisement</span>
-                            )}
-                        </div>
+                    <div className="mt-6 space-y-4">
                         {items.map((item) => (
-                            <div key={item.id} className="py-4 border-t border-zinc-800 first:border-t-0">
+                            <div key={item.id} className="rounded-md border border-zinc-800 bg-black/20 p-4">
                                 <div className="flex items-start justify-between gap-4">
                                     <div className="flex-1">
                                         <div className="flex items-center gap-2">
                                             <span className="text-sm font-bold text-white">{item.server_name}</span>
                                             {item.is_active && (
-                                                <span className="text-[10px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded uppercase font-semibold">Active</span>
+                                                <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded uppercase font-semibold">Active</span>
                                             )}
                                         </div>
                                         <div className="text-xs text-zinc-500 mt-1">{item.invite_url}</div>
@@ -288,27 +223,27 @@ const AdvertisementsPage = () => {
                                         {item.is_active ? (
                                             <button
                                                 onClick={() => handleDeactivate(item.id)}
-                                                className="text-xs bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-1.5 rounded transition-colors"
+                                                className="text-xs rounded-md border border-zinc-800 bg-black/40 px-3 py-1.5 text-white font-semibold transition-colors hover:bg-zinc-800"
                                             >
                                                 Deactivate
                                             </button>
                                         ) : (
                                             <button
                                                 onClick={() => handleActivate(item.id)}
-                                                className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded transition-colors"
+                                                className="text-xs rounded-md bg-primary px-3 py-1.5 text-black font-semibold transition-colors hover:brightness-95"
                                             >
                                                 Activate
                                             </button>
                                         )}
                                         <button
                                             onClick={() => handleEdit(item)}
-                                            className="text-xs bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-1.5 rounded transition-colors"
+                                            className="text-xs rounded-md border border-zinc-800 bg-black/40 px-3 py-1.5 text-white font-semibold transition-colors hover:bg-zinc-800"
                                         >
                                             Edit
                                         </button>
                                         <button
                                             onClick={() => handleDelete(item.id)}
-                                            className="text-xs bg-red-900/50 hover:bg-red-900 text-red-300 px-3 py-1.5 rounded transition-colors"
+                                            className="text-xs rounded-md border border-red-900/50 bg-red-900/20 px-3 py-1.5 text-red-300 font-semibold transition-colors hover:bg-red-900/30"
                                         >
                                             Delete
                                         </button>
@@ -318,8 +253,90 @@ const AdvertisementsPage = () => {
                         ))}
                     </div>
                 )}
-            </div>
-        </div>
+            </section>
+
+            <Dialog
+                isOpen={showFormDialog}
+                onClose={resetForm}
+                title={editingId ? 'Edit Advertisement' : 'Create Advertisement'}
+                size="lg"
+            >
+                <form onSubmit={editingId ? handleUpdate : handleCreate} className="space-y-4">
+                    <div>
+                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Server Name *</label>
+                        <input
+                            type="text"
+                            value={formData.server_name}
+                            onChange={(e) => setFormData({ ...formData, server_name: e.target.value.slice(0, 100) })}
+                            disabled={submitting}
+                            className="mt-1 w-full rounded-md border border-zinc-800 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                            maxLength={100}
+                            required
+                        />
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Invite URL *</label>
+                        <input
+                            type="url"
+                            value={formData.invite_url}
+                            onChange={(e) => setFormData({ ...formData, invite_url: e.target.value })}
+                            disabled={submitting}
+                            placeholder="https://discord.gg/..."
+                            className="mt-1 w-full rounded-md border border-zinc-800 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                            required
+                        />
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Icon URL</label>
+                        <input
+                            type="url"
+                            value={formData.icon_url}
+                            onChange={(e) => setFormData({ ...formData, icon_url: e.target.value })}
+                            disabled={submitting}
+                            placeholder="https://..."
+                            className="mt-1 w-full rounded-md border border-zinc-800 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Description</label>
+                        <textarea
+                            value={formData.description}
+                            onChange={(e) => setFormData({ ...formData, description: e.target.value.slice(0, 500) })}
+                            disabled={submitting}
+                            className="mt-1 w-full rounded-md border border-zinc-800 bg-black/40 px-3 py-2 text-sm text-zinc-200 outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none h-20"
+                            maxLength={500}
+                        />
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Message</label>
+                        <textarea
+                            value={formData.message}
+                            onChange={(e) => setFormData({ ...formData, message: e.target.value.slice(0, 500) })}
+                            disabled={submitting}
+                            className="mt-1 w-full rounded-md border border-zinc-800 bg-black/40 px-3 py-2 text-sm text-zinc-200 outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none h-20"
+                            maxLength={500}
+                        />
+                    </div>
+                    <div className="flex gap-2 justify-end">
+                        <button
+                            type="button"
+                            onClick={resetForm}
+                            disabled={submitting}
+                            className="rounded-md border border-zinc-800 bg-black/40 text-white px-4 py-2 text-sm font-semibold transition-colors hover:bg-zinc-800"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={submitting}
+                            className="bg-primary hover:brightness-95 disabled:opacity-60 disabled:cursor-not-allowed text-black font-semibold px-4 py-2 rounded-md text-sm transition-colors"
+                        >
+                            {submitting ? 'Saving...' : (editingId ? 'Update' : 'Create')}
+                        </button>
+                    </div>
+                </form>
+            </Dialog>
+        </main>
     );
 };
 

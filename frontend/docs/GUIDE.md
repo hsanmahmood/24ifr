@@ -110,7 +110,7 @@ The initial altitude to assign after departure. Common values are `2000`, `3000`
 
 ## Phraseology Presets
 
-The **Config** page lets you choose and customize a clearance template for four different phraseologies. Each authority has its own independently saved template slot.
+The **Config** page lets you choose and customize a clearance template for four different phraseologies. Each phraseology has its own independently saved template slot.
 
 ### Available phraseology
 
@@ -124,7 +124,7 @@ The **Config** page lets you choose and customize a clearance template for four 
 ### How phraseology work
 
 - Clicking an phraseology in the left panel loads its template into the editor.
-- Editing the textarea updates only that phraseology draft — other authority slots are unaffected.
+- Editing the textarea updates only that phraseology draft — other phraseology slots are unaffected.
 - Pressing **Save Template** writes the current draft to that phraseology's slot and sets it as your active phraseology.
 - The active phraseology's template is used every time you generate a clearance on the main page.
 

@@ -16,11 +16,11 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, generati
     const [runway, setRunway] = useState(() => settings.defaultRunway || '');
     const [atisLetter, setAtisLetter] = useState(() => settings.defaultAtisLetter || '');
     const [qnh, setQnh] = useState(() => String(settings.defaultQnh || ''));
-    const [routing, setRouting] = useState(() => (defaultsEnabled ? settings.defaultRouting || 'As Filed' : 'As Filed'));
+    const [routing, setRouting] = useState(() => (defaultsEnabled ? settings.defaultRouting || 'Filed route' : 'Filed route'));
     const [sidDetails, setSidDetails] = useState(() => (defaultsEnabled ? settings.defaultSidRoutingDetails || settings.defaultRoutingDetails || '' : ''));
     const [routingDetails, setRoutingDetails] = useState(() => {
         if (!defaultsEnabled) return '';
-        if ((settings.defaultRouting || 'As Filed') === 'SID') return settings.defaultSidRoutingDetails || settings.defaultRoutingDetails || '';
+        if ((settings.defaultRouting || 'Filed route') === 'SID') return settings.defaultSidRoutingDetails || settings.defaultRoutingDetails || '';
         return '';
     });
     const [initialClimb, setInitialClimb] = useState(() => settings.defaultInitialClimb || '2000');
@@ -31,15 +31,15 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, generati
     useEffect(() => {
         if (!defaultsEnabled) {
             setStation('');
-            setRouting('As Filed');
+            setRouting('Filed route');
             setSidDetails('');
             setRoutingDetails('');
             return;
         }
-        setRouting(settings.defaultRouting || 'As Filed');
+        setRouting(settings.defaultRouting || 'Filed route');
         setSidDetails(settings.defaultSidRoutingDetails || settings.defaultRoutingDetails || '');
         setRoutingDetails(() => {
-            if ((settings.defaultRouting || 'As Filed') === 'SID') return settings.defaultSidRoutingDetails || settings.defaultRoutingDetails || '';
+            if ((settings.defaultRouting || 'Filed route') === 'SID') return settings.defaultSidRoutingDetails || settings.defaultRoutingDetails || '';
             return '';
         });
     }, [defaultsEnabled, settings.defaultRouting, settings.defaultSidRoutingDetails, settings.defaultRoutingDetails]);
@@ -55,11 +55,15 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, generati
         const airportsDb = generateAirports();
         const stationCatalog = airportsDb.flatMap((airport) => {
             const airportCode = normalizeCode(airport.code);
-            return (airport.stations || []).map((sCode) => ({
+            const ctrStation = airport.ctr ? `${airport.ctr}_CTR` : null;
+            const allStations = [...(airport.stations || [])];
+            if (ctrStation) allStations.push(ctrStation);
+            return allStations.map((sCode) => ({
                 airportCode,
                 stationCode: normalizeCode(sCode),
                 stationKey: canonicalStation(sCode),
                 friendlyName: airport.friendlyName,
+                island: airport.island,
             }));
         });
 
@@ -80,6 +84,7 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, generati
                 label: canonicalStation(matched.stationCode),
                 value: matched.stationCode,
                 airport: matched.airportCode,
+                island: matched.island,
                 frequency: FREQ_LIST[matched.stationCode] || c.frequency || c.freq || '---',
             });
         });
@@ -90,9 +95,9 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, generati
 
     useEffect(() => {
         const airportsDb = generateAirports();
-        const onlineCodes = new Set(availableStations.map(s => normalizeCode(s.airport)).filter(Boolean));
+        const onlineIslands = new Set(availableStations.map(s => s.island).filter(Boolean));
         const visible = airportsDb
-            .filter(a => onlineCodes.has(normalizeCode(a.code)))
+            .filter(a => onlineIslands.has(a.island))
             .sort((a, b) => a.friendlyName.localeCompare(b.friendlyName));
         setAvailableAirports(visible);
     }, [availableStations]);
@@ -103,29 +108,22 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, generati
         return ranks[pos] ?? 99;
     };
 
-    const handleAirportChange = (airport) => {
-        if (airport && !/^[A-Z]{4}$/.test(normalizeCode(airport))) return;
-        setDepartureAirport(airport);
-        onAirportChange?.(airport || '');
+    const handleAirportChange = (island) => {
+        setDepartureAirport(island);
+        onAirportChange?.(island || '');
         setStation('');
         setAutoFilled({ runway: false, atis: false, qnh: false });
         setQnh('');
-        if (!airport) return;
+        if (!island) return;
 
-        const airportStations = availableStations.filter(s => normalizeCode(s.airport) === normalizeCode(airport));
-        if (airportStations.length > 0) {
-            const airportsDb = generateAirports();
-            const airportRecord = airportsDb.find((item) => normalizeCode(item.code) === normalizeCode(airport));
-            const preferredCtr = airportRecord?.ctr
-                ? airportStations.find((item) => canonicalStation(item.value) === normalizeCode(airportRecord.ctr))
-                : null;
-            if (preferredCtr) {
-                setStation(preferredCtr.value);
-            } else {
-                const sorted = airportStations.sort((a, b) => getStationRank(a.value) - getStationRank(b.value));
-                setStation(sorted[0].value);
+        const islandStations = availableStations.filter(s => s.island === island);
+        if (islandStations.length > 0) {
+            const sorted = islandStations.sort((a, b) => getStationRank(a.value) - getStationRank(b.value));
+            setStation(sorted[0].value);
+            const sel = islandStations.find(s => s.value === sorted[0].value);
+            if (sel) {
+                updateAtisAndRunway(sel.airport);
             }
-            updateAtisAndRunway(normalizeCode(airport));
         }
     };
 
@@ -133,10 +131,10 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, generati
         setStation(newStation);
         const sel = availableStations.find(s => s.value === newStation);
         if (sel) {
-            const airp = normalizeCode(sel.airport);
-            setDepartureAirport(airp);
-            onAirportChange?.(airp);
-            updateAtisAndRunway(airp);
+            const island = sel.island;
+            setDepartureAirport(island);
+            onAirportChange?.(island);
+            updateAtisAndRunway(sel.airport);
         }
     };
 
@@ -181,7 +179,7 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, generati
 
     const handleRoutingChange = (nextRouting) => {
         setRouting(nextRouting);
-        if (nextRouting === 'As Filed') return;
+        if (nextRouting === 'Filed route' || nextRouting === 'As filed') return;
         if (nextRouting === 'SID') {
             const nextDetails = sidDetails || settings.defaultSidRoutingDetails || settings.defaultRoutingDetails || '';
             setRoutingDetails(nextDetails);
@@ -205,11 +203,20 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, generati
                 <div className="space-y-4">
                     <Combobox
                         label="Island"
-                        options={availableAirports.map(a => ({
-                            label: a.island || (a.code === 'IRFD' ? a.friendlyName : a.friendlyName.split(/\s+/)[0]),
-                            value: a.code,
-                            subtext: `${availableStations.filter(s => normalizeCode(s.airport) === a.code).length} online`
-                        }))}
+                        options={(() => {
+                            const airportsDb = generateAirports();
+                            const islandMap = {};
+                            availableStations.forEach(s => {
+                                if (!islandMap[s.island]) {
+                                    islandMap[s.island] = {
+                                        label: s.island,
+                                        value: s.island,
+                                        subtext: `${availableStations.filter(st => st.island === s.island).length} online`
+                                    };
+                                }
+                            });
+                            return Object.values(islandMap).sort((a, b) => a.label.localeCompare(b.label));
+                        })()}
                         value={departureAirport}
                         onChange={handleAirportChange}
                         placeholder="Select Island"
@@ -217,7 +224,7 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, generati
                     {departureAirport && (
                         <Combobox
                             label="ATC Station"
-                            options={availableStations.filter(s => normalizeCode(s.airport) === departureAirport).sort((a, b) => getStationRank(a.value) - getStationRank(b.value)).map(s => ({ ...s, subtext: s.frequency }))}
+                            options={availableStations.filter(s => s.island === departureAirport).sort((a, b) => getStationRank(a.value) - getStationRank(b.value)).map(s => ({ ...s, subtext: s.frequency }))}
                             value={station}
                             onChange={handleStationChange}
                             placeholder="Select Station"
@@ -243,7 +250,7 @@ const AtcSettings = ({ atis, controllers, onGenerateClearance, loading, generati
                         </div>
                     </div>
                     <div className="space-y-1.5">
-                        <Combobox label="Routing Type" options={[{ label: 'As Filed', value: 'As Filed' }, { label: 'SID', value: 'SID' }, { label: 'Radar Vectors', value: 'VECTORS' }, { label: 'GPS Direct', value: 'GPS Direct' }]} value={routing} onChange={handleRoutingChange} />
+                        <Combobox label="Routing Type" options={[{ label: 'Filed route', value: 'Filed route' }, { label: 'As filed', value: 'As filed' }, { label: 'SID', value: 'SID' }, { label: 'Radar Vectors', value: 'VECTORS' }, { label: 'GPS Direct', value: 'GPS Direct' }]} value={routing} onChange={handleRoutingChange} />
                         {selectedFlightPlan?.route && (
                             <p className="text-[11px] text-zinc-500 font-mono">
                                 Filed: {selectedFlightPlan.route}

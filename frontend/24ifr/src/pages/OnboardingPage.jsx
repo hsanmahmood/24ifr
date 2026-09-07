@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AUTHORITY_KEYS, AUTHORITY_DEFAULTS, PLACEHOLDERS, normalizeSettings } from '../services/clearance';
+import { PHRASEOLOGY_KEYS, PHRASEOLOGY_DEFAULTS, PLACEHOLDERS, normalizeSettings } from '../services/clearance';
 import { loadUserSettings, updateUserSettings } from '../services/api';
 
 const OnboardingPage = () => {
@@ -8,8 +8,8 @@ const OnboardingPage = () => {
     const saved = loadUserSettings() || {};
     const initial = normalizeSettings(saved || {});
     const [step, setStep] = useState(1);
-    const [activeAuthority, setActiveAuthority] = useState(initial.activeAuthority || 'Default');
-    const [templates, setTemplates] = useState(() => Object.fromEntries(AUTHORITY_KEYS.map(k => [k, initial.authorities?.[k]?.template || AUTHORITY_DEFAULTS[k]])));
+    const [activePhraseology, setActivePhraseology] = useState(initial.activePhraseology || 'Default');
+    const [templates, setTemplates] = useState(() => Object.fromEntries(PHRASEOLOGY_KEYS.map(k => [k, initial.phraseologies?.[k]?.template || PHRASEOLOGY_DEFAULTS[k]])));
     const textareaRef = useRef(null);
 
     const insertPlaceholder = (token) => {
@@ -17,9 +17,9 @@ const OnboardingPage = () => {
         if (!ta) return;
         const start = ta.selectionStart || 0;
         const end = ta.selectionEnd || 0;
-        const cur = templates[activeAuthority] || '';
+        const cur = templates[activePhraseology] || '';
         const next = cur.slice(0, start) + token + cur.slice(end);
-        setTemplates((p) => ({ ...p, [activeAuthority]: next }));
+        setTemplates((p) => ({ ...p, [activePhraseology]: next }));
         setTimeout(() => {
             ta.focus();
             const pos = start + token.length;
@@ -29,8 +29,8 @@ const OnboardingPage = () => {
 
     const saveAndFinish = () => {
         try {
-            const defaults = AUTHORITY_KEYS.reduce((acc, key) => ({ ...acc, [key]: { template: templates[key] || AUTHORITY_DEFAULTS[key] } }), {});
-            const next = normalizeSettings({ activeAuthority, authorities: defaults, clearanceTemplate: templates[activeAuthority] });
+            const defaults = PHRASEOLOGY_KEYS.reduce((acc, key) => ({ ...acc, [key]: { template: templates[key] || PHRASEOLOGY_DEFAULTS[key] } }), {});
+            const next = normalizeSettings({ activePhraseology, phraseologies: defaults, clearanceTemplate: templates[activePhraseology] });
             const changed = JSON.stringify(next) !== JSON.stringify(normalizeSettings(saved || {}));
             if (changed) updateUserSettings(next);
         } catch (e) {
@@ -60,10 +60,10 @@ const OnboardingPage = () => {
                     <div className="space-y-4">
                         <div className="text-sm font-bold text-white uppercase tracking-wide mb-2">Choose your phraseology</div>
                         <div className="flex flex-wrap gap-2">
-                            {AUTHORITY_KEYS.map((key) => {
-                                const active = key === activeAuthority;
+                            {PHRASEOLOGY_KEYS.map((key) => {
+                                const active = key === activePhraseology;
                                 return (
-                                    <button key={key} onClick={() => setActiveAuthority(key)} className={`px-3 py-1.5 rounded-full text-sm ${active ? 'bg-primary text-black' : 'bg-zinc-800 text-zinc-300'}`}>
+                                    <button key={key} onClick={() => setActivePhraseology(key)} className={`px-3 py-1.5 rounded-full text-sm ${active ? 'bg-primary text-black' : 'bg-zinc-800 text-zinc-300'}`}>
                                         {key}
                                     </button>
                                 );
@@ -78,11 +78,11 @@ const OnboardingPage = () => {
 
                 {step === 2 && (
                     <div className="space-y-4">
-                        <div className="text-sm font-bold text-white uppercase tracking-wide mb-2">Customize template for {activeAuthority}</div>
+                        <div className="text-sm font-bold text-white uppercase tracking-wide mb-2">Customize template for {activePhraseology}</div>
                         <textarea
                             ref={textareaRef}
-                            value={templates[activeAuthority]}
-                            onChange={(e) => setTemplates((p) => ({ ...p, [activeAuthority]: e.target.value }))}
+                            value={templates[activePhraseology]}
+                            onChange={(e) => setTemplates((p) => ({ ...p, [activePhraseology]: e.target.value }))}
                             className="bg-zinc-900 border border-border-dark rounded-lg p-3 text-sm text-white font-mono w-full max-w-2xl resize-none h-36"
                         />
                         <p className="text-xs text-zinc-500">Click a placeholder below to insert it into your template  .</p>
@@ -106,8 +106,8 @@ const OnboardingPage = () => {
                     <div className="space-y-4">
                         <div className="text-sm font-bold text-white uppercase tracking-wide mb-2">Review and save</div>
                         <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-                            <div className="text-xs text-zinc-400 mb-2">Active authority: <span className="text-white font-bold">{activeAuthority}</span></div>
-                            <pre className="whitespace-pre-wrap text-sm font-mono text-zinc-200">{templates[activeAuthority]}</pre>
+                            <div className="text-xs text-zinc-400 mb-2">Active phraseology: <span className="text-white font-bold">{activePhraseology}</span></div>
+                            <pre className="whitespace-pre-wrap text-sm font-mono text-zinc-200">{templates[activePhraseology]}</pre>
                         </div>
                         <div className="flex justify-between mt-4">
                             <button onClick={() => setStep(2)} className="text-zinc-500 hover:text-white text-sm">Back</button>
